@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Dimensions, ActivityIndicator, Alert } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'; // Import PROVIDER_GOOGLE
-import * as Location from 'expo-location'; // Import Expo Location
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps'; // Import Region type
+import * as Location from 'expo-location';
 
 const { width, height } = Dimensions.get('window');
-const PADDING_HORIZONTAL = 20; // Match layout padding
+const PADDING_HORIZONTAL = 20;
 const CONTENT_AREA_PADDING = 20;
 
 // --- Colors ---
@@ -18,7 +18,8 @@ const COLORS = {
 };
 
 export default function LocationScreen() {
-    const [mapRegion, setMapRegion] = useState<Location.LocationRegion | null>(null);
+    // Use the correct Region type from react-native-maps
+    const [mapRegion, setMapRegion] = useState<Region | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -33,7 +34,7 @@ export default function LocationScreen() {
             }
 
             try {
-                 // Get location with higher accuracy - might take longer
+                // Get location with higher accuracy - might take longer
                 let location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
                 setMapRegion({
                     latitude: location.coords.latitude,
@@ -42,9 +43,9 @@ export default function LocationScreen() {
                     longitudeDelta: 0.01, // Zoom level
                 });
             } catch (error) {
-                 setErrorMsg('Could not fetch location.');
-                 console.error("Location Error:", error);
-                 Alert.alert('Location Error', 'Could not fetch your current location.');
+                setErrorMsg('Could not fetch location.');
+                console.error("Location Error:", error);
+                Alert.alert('Location Error', 'Could not fetch your current location.');
             } finally {
                 setIsLoading(false);
             }
@@ -59,24 +60,25 @@ export default function LocationScreen() {
                     {isLoading ? (
                         <ActivityIndicator size="large" color={COLORS.cream} style={styles.loadingIndicator} />
                     ) : errorMsg || !mapRegion ? (
-                         <View style={styles.errorContainer}>
+                        <View style={styles.errorContainer}>
                             <Text style={styles.errorText}>{errorMsg || 'Could not load map region.'}</Text>
-                         </View>
+                        </View>
                     ) : (
                         <MapView
                             style={styles.map}
-                            provider={PROVIDER_GOOGLE} // Essential for Google Maps styling on Android
-                            initialRegion={mapRegion} // Use initialRegion for first load
-                            region={mapRegion} // Control region if you want updates
-                            showsUserLocation={true} // Show blue dot for user
-                            followsUserLocation={true} // Keep user centered (optional)
+                            provider={PROVIDER_GOOGLE}
+                            initialRegion={mapRegion}
+                            region={mapRegion}
+                            showsUserLocation={true}
+                            followsUserLocation={true}
                         >
-                            {/* You can add a specific marker if needed, besides showsUserLocation */}
-                             <Marker
-                                coordinate={{ latitude: mapRegion.latitude, longitude: mapRegion.longitude }}
+                            <Marker
+                                coordinate={{ 
+                                    latitude: mapRegion.latitude, 
+                                    longitude: mapRegion.longitude 
+                                }}
                                 title={"Your Location"}
-                                // description={"You are here"} // Optional description
-                             />
+                            />
                         </MapView>
                     )}
                 </View>
@@ -117,9 +119,9 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject, // Make map fill its container
     },
     loadingIndicator: {
-       // Positioned center by mapContainer styles
+        // Positioned center by mapContainer styles
     },
-     errorContainer: {
+    errorContainer: {
         padding: 20,
         alignItems: 'center',
     },
