@@ -1,286 +1,244 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   Switch,
   TouchableOpacity,
-  Alert,
-  Platform
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { 
-  Lock, 
-  Bell, 
-  Phone, 
-  Globe, 
-  Volume2, 
-  LogOut,
+  SafeAreaView
+} from "react-native";
+import {
+  Bell,
   Moon,
+  Globe,
+  Volume2,
+  Vibrate,
+  Clock,
   ChevronRight
-} from 'lucide-react-native';
-import { colors } from '@/constants/Colors';
-import { useSettingsStore } from '@/store/settings-store';
-import { useAuthStore } from '@/store/auth-store';
+} from "lucide-react-native";
+import Colors from "@/constants/colors";
+import { useSettingsStore } from "@/store/settings-store";
 
 export default function SettingsScreen() {
-  const router = useRouter();
-  const { settings, updateSettings, isLoading } = useSettingsStore();
-  const { signOut } = useAuthStore();
+  const { settings, updateSettings } = useSettingsStore();
   
-  const handleToggleSetting = (key: keyof typeof settings) => {
-    updateSettings({ [key]: !settings[key] });
+  const handleToggleSetting = (key: keyof typeof settings, value: any) => {
+    updateSettings({ [key]: value });
   };
   
-  const handleChangePassword = () => {
-    // In a real app, this would navigate to a change password screen
-    Alert.alert(
-      'Change Password',
-      'This feature would allow you to change your password.',
-      [{ text: 'OK' }]
-    );
-  };
+  const languageOptions = [
+    { code: "en", name: "English" },
+    { code: "hi", name: "Hindi" },
+    { code: "es", name: "Spanish" },
+    { code: "fr", name: "French" }
+  ];
   
-  const handleChangeLanguage = () => {
-    // In a real app, this would show a language picker
-    Alert.alert(
-      'Change Language',
-      'This feature would allow you to change the app language.',
-      [{ text: 'OK' }]
-    );
-  };
-  
-  const handleLogout = () => {
-    if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to log out?')) {
-        signOut();
-        router.replace('./(auth)/sign-in');
-      }
-    } else {
-      Alert.alert(
-        'Log Out',
-        'Are you sure you want to log out?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Log Out', 
-            style: 'destructive',
-            onPress: () => {
-              signOut();
-              router.replace('./(auth)/sign-in');
-            }
-          }
-        ]
-      );
-    }
+  const getLanguageName = (code: string) => {
+    const language = languageOptions.find(lang => lang.code === code);
+    return language ? language.name : "Unknown";
   };
   
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>App Settings</Text>
-          <Text style={styles.subtitle}>
-            Customize your SheSafe experience.
-          </Text>
-        </View>
-        
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={handleChangePassword}
-          >
-            <View style={styles.settingIconContainer}>
-              <Lock size={20} color={colors.primary} />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingTitle}>Change Password</Text>
-              <Text style={styles.settingDescription}>
-                Update your account password
-              </Text>
-            </View>
-            <ChevronRight size={20} color={colors.textLight} />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
+          <Text style={styles.sectionTitle}>General</Text>
           
           <View style={styles.settingItem}>
-            <View style={styles.settingIconContainer}>
-              <Bell size={20} color={colors.primary} />
+            <View style={[styles.settingIcon, { backgroundColor: Colors.primary + "20" }]}>
+              <Bell size={20} color={Colors.primary} />
             </View>
             <View style={styles.settingContent}>
-              <Text style={styles.settingTitle}>SOS Siren</Text>
+              <Text style={styles.settingTitle}>Notifications</Text>
               <Text style={styles.settingDescription}>
-                Play loud siren when SOS is activated
+                Receive alerts and updates
               </Text>
             </View>
             <Switch
-              value={settings.enableSiren}
-              onValueChange={() => handleToggleSetting('enableSiren')}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.white}
-              disabled={isLoading}
+              value={settings.notifications}
+              onValueChange={(value) => handleToggleSetting("notifications", value)}
+              trackColor={{ false: Colors.gray[300], true: Colors.primary + "80" }}
+              thumbColor={settings.notifications ? Colors.primary : Colors.white}
             />
           </View>
           
           <View style={styles.settingItem}>
-            <View style={styles.settingIconContainer}>
-              <Phone size={20} color={colors.primary} />
+            <View style={[styles.settingIcon, { backgroundColor: Colors.secondary + "20" }]}>
+              <Moon size={20} color={Colors.secondary} />
             </View>
             <View style={styles.settingContent}>
-              <Text style={styles.settingTitle}>Auto-call Primary Contact</Text>
+              <Text style={styles.settingTitle}>Theme</Text>
               <Text style={styles.settingDescription}>
-                Automatically call primary contact after SOS
+                {settings.theme === "light" ? "Light" : settings.theme === "dark" ? "Dark" : "System Default"}
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.settingAction}>
+              <ChevronRight size={20} color={Colors.gray[400]} />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.settingItem}>
+            <View style={[styles.settingIcon, { backgroundColor: Colors.info + "20" }]}>
+              <Globe size={20} color={Colors.info} />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingTitle}>Language</Text>
+              <Text style={styles.settingDescription}>
+                {getLanguageName(settings.language)}
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.settingAction}>
+              <ChevronRight size={20} color={Colors.gray[400]} />
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Emergency Settings</Text>
+          
+          <View style={styles.settingItem}>
+            <View style={[styles.settingIcon, { backgroundColor: Colors.success + "20" }]}>
+              <MapPin size={20} color={Colors.success} />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingTitle}>Location Sharing</Text>
+              <Text style={styles.settingDescription}>
+                Share location during emergencies
               </Text>
             </View>
             <Switch
-              value={settings.autoCallPrimary}
-              onValueChange={() => handleToggleSetting('autoCallPrimary')}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.white}
-              disabled={isLoading}
+              value={settings.locationSharing}
+              onValueChange={(value) => handleToggleSetting("locationSharing", value)}
+              trackColor={{ false: Colors.gray[300], true: Colors.primary + "80" }}
+              thumbColor={settings.locationSharing ? Colors.primary : Colors.white}
+            />
+          </View>
+          
+          <View style={styles.settingItem}>
+            <View style={[styles.settingIcon, { backgroundColor: Colors.danger + "20" }]}>
+              <Volume2 size={20} color={Colors.danger} />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingTitle}>Emergency Siren</Text>
+              <Text style={styles.settingDescription}>
+                Play siren during SOS
+              </Text>
+            </View>
+            <Switch
+              value={settings.sirenEnabled}
+              onValueChange={(value) => handleToggleSetting("sirenEnabled", value)}
+              trackColor={{ false: Colors.gray[300], true: Colors.primary + "80" }}
+              thumbColor={settings.sirenEnabled ? Colors.primary : Colors.white}
+            />
+          </View>
+          
+          <View style={styles.settingItem}>
+            <View style={[styles.settingIcon, { backgroundColor: Colors.warning + "20" }]}>
+              <Vibrate size={20} color={Colors.warning} />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingTitle}>Vibration</Text>
+              <Text style={styles.settingDescription}>
+                Vibrate during emergencies
+              </Text>
+            </View>
+            <Switch
+              value={settings.vibrationEnabled}
+              onValueChange={(value) => handleToggleSetting("vibrationEnabled", value)}
+              trackColor={{ false: Colors.gray[300], true: Colors.primary + "80" }}
+              thumbColor={settings.vibrationEnabled ? Colors.primary : Colors.white}
+            />
+          </View>
+          
+          <View style={styles.settingItem}>
+            <View style={[styles.settingIcon, { backgroundColor: Colors.info + "20" }]}>
+              <Clock size={20} color={Colors.info} />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingTitle}>SOS Countdown</Text>
+              <Text style={styles.settingDescription}>
+                {settings.sosCountdownDuration} seconds
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.settingAction}>
+              <ChevronRight size={20} color={Colors.gray[400]} />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.settingItem}>
+            <View style={[styles.settingIcon, { backgroundColor: Colors.secondary + "20" }]}>
+              <AlertTriangle size={20} color={Colors.secondary} />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingTitle}>Auto SOS</Text>
+              <Text style={styles.settingDescription}>
+                Automatically activate SOS in certain situations
+              </Text>
+            </View>
+            <Switch
+              value={settings.autoSOS}
+              onValueChange={(value) => handleToggleSetting("autoSOS", value)}
+              trackColor={{ false: Colors.gray[300], true: Colors.primary + "80" }}
+              thumbColor={settings.autoSOS ? Colors.primary : Colors.white}
             />
           </View>
         </View>
         
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Appearance</Text>
+          <Text style={styles.sectionTitle}>About</Text>
           
-          <View style={styles.settingItem}>
-            <View style={styles.settingIconContainer}>
-              <Moon size={20} color={colors.primary} />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingTitle}>Dark Mode</Text>
-              <Text style={styles.settingDescription}>
-                Use dark theme for the app
-              </Text>
-            </View>
-            <Switch
-              value={settings.darkMode}
-              onValueChange={() => handleToggleSetting('darkMode')}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.white}
-              disabled={isLoading}
-            />
-          </View>
-          
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={handleChangeLanguage}
-          >
-            <View style={styles.settingIconContainer}>
-              <Globe size={20} color={colors.primary} />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingTitle}>App Language</Text>
-              <Text style={styles.settingDescription}>
-                Change the language of the app
-              </Text>
-            </View>
-            <View style={styles.languageValue}>
-              <Text style={styles.languageText}>English</Text>
-              <ChevronRight size={16} color={colors.textLight} />
-            </View>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Features</Text>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingIconContainer}>
-              <Volume2 size={20} color={colors.primary} />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingTitle}>Fake Call</Text>
-              <Text style={styles.settingDescription}>
-                Enable fake call feature for uncomfortable situations
-              </Text>
-            </View>
-            <Switch
-              value={settings.enableFakeCall}
-              onValueChange={() => handleToggleSetting('enableFakeCall')}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.white}
-              disabled={isLoading}
-            />
+          <View style={styles.aboutCard}>
+            <Text style={styles.appName}>SheSafe</Text>
+            <Text style={styles.appVersion}>Version 1.0.0</Text>
+            <Text style={styles.appDescription}>
+              SheSafe is a personal safety app designed to help women feel safer by providing quick access to emergency services and trusted contacts.
+            </Text>
           </View>
         </View>
-        
-        <TouchableOpacity 
-          style={styles.logoutButton}
-          onPress={handleLogout}
-        >
-          <LogOut size={20} color={colors.danger} />
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
-        
-        <Text style={styles.versionText}>SheSafe v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+import { AlertTriangle, MapPin } from "lucide-react-native";
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
-  },
-  scrollView: {
-    flex: 1,
+    backgroundColor: Colors.gray[50],
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.textDark,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textLight,
+    padding: 16,
   },
   section: {
     marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: colors.textDark,
+    fontWeight: "600",
+    color: Colors.text,
     marginBottom: 12,
   },
   settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  settingIconContainer: {
+  settingIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 107, 139, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   settingContent: {
@@ -288,42 +246,43 @@ const styles = StyleSheet.create({
   },
   settingTitle: {
     fontSize: 16,
-    fontWeight: '500',
-    color: colors.textDark,
-    marginBottom: 4,
+    fontWeight: "600",
+    color: Colors.text,
+    marginBottom: 2,
   },
   settingDescription: {
     fontSize: 14,
-    color: colors.textLight,
+    color: Colors.textSecondary,
   },
-  languageValue: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  settingAction: {
+    padding: 4,
   },
-  languageText: {
-    fontSize: 14,
-    color: colors.primary,
-    marginRight: 4,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+  aboutCard: {
+    backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 16,
-    marginTop: 8,
-    marginBottom: 24,
+    alignItems: "center",
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.danger,
-    marginLeft: 8,
+  appName: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: Colors.primary,
+    marginBottom: 4,
   },
-  versionText: {
-    textAlign: 'center',
+  appVersion: {
     fontSize: 14,
-    color: colors.textLight,
+    color: Colors.textSecondary,
+    marginBottom: 12,
   },
+  appDescription: {
+    fontSize: 14,
+    color: Colors.text,
+    textAlign: "center",
+    lineHeight: 20,
+  }
 });

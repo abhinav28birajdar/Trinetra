@@ -1,111 +1,105 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
-  Image
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { 
-  BookOpen, 
-  Phone, 
-  Camera, 
-  Info, 
-  ChevronRight 
-} from 'lucide-react-native';
-import { colors } from '@/constants/Colors';
-
-interface ResourceCardProps {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  onPress: () => void;
-  imageUrl?: string;
-}
-
-const ResourceCard: React.FC<ResourceCardProps> = ({
-  title,
-  description,
-  icon,
-  onPress,
-  imageUrl
-}) => (
-  <TouchableOpacity style={styles.card} onPress={onPress}>
-    <View style={styles.cardContent}>
-      <View style={styles.iconContainer}>
-        {icon}
-      </View>
-      <View style={styles.cardTextContainer}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        <Text style={styles.cardDescription}>{description}</Text>
-      </View>
-      <ChevronRight size={20} color={colors.textLight} />
-    </View>
-    {imageUrl && (
-      <Image 
-        source={{ uri: imageUrl }}
-        style={styles.cardImage}
-      />
-    )}
-  </TouchableOpacity>
-);
+  Image,
+  SafeAreaView
+} from "react-native";
+import { router } from "expo-router";
+import {
+  Phone,
+  Shield,
+  Camera,
+  Info,
+  ChevronRight
+} from "lucide-react-native";
+import Colors from "@/constants/colors";
 
 export default function ResourcesScreen() {
-  const router = useRouter();
+  const resources = [
+    {
+      id: "helplines",
+      title: "Emergency Helplines",
+      description: "Quick access to emergency numbers and helplines",
+      icon: <Phone size={24} color={Colors.white} />,
+      color: Colors.danger,
+      route: "/helplines"
+    },
+    {
+      id: "safety-tips",
+      title: "Safety Tips",
+      description: "Learn how to stay safe in different situations",
+      icon: <Shield size={24} color={Colors.white} />,
+      color: Colors.info,
+      route: "/safety-tips"
+    },
+    {
+      id: "evidence",
+      title: "Evidence Collection",
+      description: "Capture and store evidence securely",
+      icon: <Camera size={24} color={Colors.white} />,
+      color: Colors.secondary,
+      route: "/evidence"
+    },
+    {
+      id: "about",
+      title: "About SheSafe",
+      description: "Learn more about the app and its features",
+      icon: <Info size={24} color={Colors.white} />,
+      color: Colors.success,
+      route: "/about"
+    }
+  ];
   
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Text style={styles.title}>Safety Resources</Text>
-          <Text style={styles.subtitle}>
-            Access helpful resources to stay safe and informed.
+          <Image
+            source={{ uri: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=300&auto=format&fit=crop" }}
+            style={styles.headerImage}
+          />
+          <Text style={styles.headerTitle}>Safety Resources</Text>
+          <Text style={styles.headerSubtitle}>
+            Access important safety information and tools
           </Text>
         </View>
         
-        <ResourceCard
-          title="Safety Tips"
-          description="Learn essential safety practices for various situations."
-          icon={<BookOpen size={24} color={colors.primary} />}
-          onPress={() => router.push('./safety-tips')}
-          imageUrl="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80"
-        />
+        <View style={styles.resourcesContainer}>
+          {resources.map(resource => (
+            <TouchableOpacity
+              key={resource.id}
+              style={styles.resourceCard}
+              onPress={() => router.push(resource.route)}
+            >
+              <View style={[styles.resourceIcon, { backgroundColor: resource.color }]}>
+                {resource.icon}
+              </View>
+              
+              <View style={styles.resourceContent}>
+                <Text style={styles.resourceTitle}>{resource.title}</Text>
+                <Text style={styles.resourceDescription}>{resource.description}</Text>
+              </View>
+              
+              <ChevronRight size={20} color={Colors.gray[400]} />
+            </TouchableOpacity>
+          ))}
+        </View>
         
-        <ResourceCard
-          title="Emergency Helplines"
-          description="Quick access to important emergency contact numbers."
-          icon={<Phone size={24} color={colors.danger} />}
-          onPress={() => router.push('./helplines')}
-          imageUrl="https://images.unsplash.com/photo-1581574919402-5b7d688419a0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80"
-        />
-        
-        <ResourceCard
-          title="Capture Evidence"
-          description="Record photos, videos, or audio in unsafe situations."
-          icon={<Camera size={24} color={colors.info} />}
-          onPress={() => router.push('./evidence')}
-          imageUrl="https://images.unsplash.com/photo-1512790182412-b19e6d62bc39?ixlib=rb-1.2.1&auto=format&fit=crop&w=1050&q=80"
-        />
-        
-        <ResourceCard
-          title="About SheSafe"
-          description="Learn more about the app and its features."
-          icon={<Info size={24} color={colors.secondary} />}
-          onPress={() => router.push('./about')}
-        />
-        
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoTitle}>Did You Know?</Text>
-          <Text style={styles.infoText}>
-            Sharing your live location with trusted contacts can increase your safety by up to 60% in emergency situations.
+        <View style={styles.supportSection}>
+          <Text style={styles.supportTitle}>Need Support?</Text>
+          <Text style={styles.supportText}>
+            If you need immediate assistance, use the SOS button or contact emergency services.
           </Text>
+          <TouchableOpacity 
+            style={styles.contactButton}
+            onPress={() => router.push("/contact")}
+          >
+            <Text style={styles.contactButtonText}>Contact Us</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -115,85 +109,95 @@ export default function ResourcesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
-  },
-  scrollView: {
-    flex: 1,
+    backgroundColor: Colors.gray[50],
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: 16,
   },
   header: {
+    alignItems: "center",
     marginBottom: 24,
   },
-  title: {
+  headerImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 16,
+  },
+  headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.textDark,
+    fontWeight: "bold",
+    color: Colors.text,
     marginBottom: 8,
   },
-  subtitle: {
+  headerSubtitle: {
     fontSize: 16,
-    color: colors.textLight,
+    color: Colors.textSecondary,
+    textAlign: "center",
   },
-  card: {
-    backgroundColor: colors.white,
+  resourcesContainer: {
+    marginBottom: 24,
+  },
+  resourceCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.white,
     borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: colors.black,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    overflow: 'hidden',
   },
-  cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.cardBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
+  resourceIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 16,
   },
-  cardTextContainer: {
+  resourceContent: {
     flex: 1,
   },
-  cardTitle: {
+  resourceTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.textDark,
+    fontWeight: "600",
+    color: Colors.text,
     marginBottom: 4,
   },
-  cardDescription: {
+  resourceDescription: {
     fontSize: 14,
-    color: colors.textLight,
+    color: Colors.textSecondary,
   },
-  cardImage: {
-    width: '100%',
-    height: 120,
-  },
-  infoContainer: {
-    backgroundColor: colors.cardBackground,
+  supportSection: {
+    backgroundColor: Colors.tertiary,
     borderRadius: 12,
     padding: 16,
-    marginTop: 8,
+    alignItems: "center",
   },
-  infoTitle: {
+  supportTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: colors.textDark,
+    fontWeight: "600",
+    color: Colors.primary,
     marginBottom: 8,
   },
-  infoText: {
+  supportText: {
     fontSize: 14,
-    color: colors.textLight,
-    lineHeight: 20,
+    color: Colors.text,
+    textAlign: "center",
+    marginBottom: 16,
   },
+  contactButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+  },
+  contactButtonText: {
+    color: Colors.white,
+    fontWeight: "600",
+  }
 });

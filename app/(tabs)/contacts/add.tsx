@@ -1,183 +1,187 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
   Switch,
-  Keyboard
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { colors } from '@/constants/Colors';
-import { Input } from '@/components/Input';
-import { Button } from '@/components/Button';
-import { useContactsStore } from '@/store/contacts-store';
+  SafeAreaView
+} from "react-native";
+import { Stack, useLocalSearchParams, router } from "expo-router";
+import { User, Phone, Heart } from "lucide-react-native";
+import { Input } from "@/components/Input";
+import { Button } from "@/components/Button";
+import { useContactsStore } from "@/store/contacts-store";
+import Colors from "@/constants/colors";
 
 const relationshipOptions = [
-  'Mother', 'Father', 'Sister', 'Brother', 'Spouse', 
-  'Friend', 'Relative', 'Colleague', 'Other'
+  "Family",
+  "Friend",
+  "Spouse",
+  "Colleague",
+  "Neighbor",
+  "Other"
 ];
 
 export default function AddContactScreen() {
-  const router = useRouter();
-  const { addContact, isLoading, error, clearError } = useContactsStore();
+  const params = useLocalSearchParams();
+  const contactId = params.id as string;
+  const isEditing = !!contactId;
   
-  const [fullName, setFullName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [relationship, setRelationship] = useState('');
-  const [isPrimary, setIsPrimary] = useState(false);
+  const { contacts, addContact, updateContact, getContactById } = useContactsStore();
   
-  const [fullNameError, setFullNameError] = useState('');
-  const [phoneNumberError, setPhoneNumberError] = useState('');
-  const [relationshipError, setRelationshipError] = useState('');
+  const [name, setName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [relationship, setRelationship] = useState("");
+  const [isTrusted, setIsTrusted] = useState(false);
   
-  const validateInputs = () => {
+  const [errors, setErrors] = useState({
+    name: "",
+    phoneNumber: "",
+    relationship: ""
+  });
+  
+  // Load contact data if editing
+  useEffect(() => {
+    if (isEditing) {
+      const contact = getContactById(contactId);
+      if (contact) {
+        setName(contact.name);
+        setPhoneNumber(contact.phoneNumber);
+        setRelationship(contact.relationship);
+        setIsTrusted(contact.isTrusted);
+      }
+    }
+  }, [contactId, isEditing]);
+  
+  const validate = () => {
     let isValid = true;
+    const newErrors = {
+      name: "",
+      phoneNumber: "",
+      relationship: ""
+    };
     
-    // Reset errors
-    setFullNameError('');
-    setPhoneNumberError('');
-    setRelationshipError('');
-    clearError();
-    
-    // Validate full name
-    if (!fullName.trim()) {
-      setFullNameError('Full name is required');
+    if (!name.trim()) {
+      newErrors.name = "Name is required";
       isValid = false;
     }
     
-    // Validate phone number
     if (!phoneNumber.trim()) {
-      setPhoneNumberError('Phone number is required');
-      isValid = false;
-    } else if (!/^\+?[0-9\s]{10,15}$/.test(phoneNumber.replace(/\s/g, ''))) {
-      setPhoneNumberError('Please enter a valid phone number');
+      newErrors.phoneNumber = "Phone number is required";
       isValid = false;
     }
     
-    // Validate relationship
-    if (!relationship.trim()) {
-      setRelationshipError('Relationship is required');
+    if (!relationship) {
+      newErrors.relationship = "Relationship is required";
       isValid = false;
     }
     
+    setErrors(newErrors);
     return isValid;
   };
   
-  const handleSave = async () => {
-    Keyboard.dismiss();
-    if (validateInputs()) {
-      try {
-        await addContact({
-          fullName,
-          phoneNumber,
-          relationship,
-          isPrimary
-        });
-        
-        router.back();
-      } catch (error) {
-        console.error('Failed to add contact:', error);
-      }
+  const handleSave = () => {
+    if (!validate()) return;
+    
+    if (isEditing) {
+      updateContact(contactId, {
+        name: name.trim(),
+        phoneNumber: phoneNumber.trim(),
+        relationship,
+        isTrusted
+      });
+    } else {
+      addContact({
+        name: name.trim(),
+        phoneNumber: phoneNumber.trim(),
+        relationship,
+        isTrusted
+      });
     }
+    
+    router.back();
   };
   
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <KeyboardAvoidingView 
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 40}
+    <SafeAreaView style={styles.container}>
+      <Stack.Screen 
+        options={{
+          title: isEditing ? "Edit Contact" : "Add Contact",
+          headerShown: true,
+        }} 
+      />
+      
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardAvoidingView}
       >
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.header}>
-            <Text style={styles.title}>Add Trusted Contact</Text>
-            <Text style={styles.subtitle}>
-              Add someone you trust who can be contacted in an emergency.
-            </Text>
-          </View>
-          
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
-          
+        <ScrollView contentContainerStyle={styles.scrollContent}>
           <Input
             label="Full Name"
-            value={fullName}
-            onChangeText={setFullName}
-            placeholder="Enter contact's full name"
-            autoCapitalize="words"
-            error={fullNameError}
-            style={styles.input}
-            returnKeyType="next"
+            placeholder="Enter contact name"
+            value={name}
+            onChangeText={setName}
+            error={errors.name}
+            leftIcon={<User size={20} color={Colors.gray[500]} />}
           />
           
           <Input
             label="Phone Number"
+            placeholder="Enter phone number"
             value={phoneNumber}
             onChangeText={setPhoneNumber}
-            placeholder="Enter contact's phone number"
             keyboardType="phone-pad"
-            error={phoneNumberError}
-            style={styles.input}
-            returnKeyType="next"
+            error={errors.phoneNumber}
+            leftIcon={<Phone size={20} color={Colors.gray[500]} />}
           />
           
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerLabel}>Relationship</Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.relationshipOptions}
-              keyboardShouldPersistTaps="handled"
-            >
-              {relationshipOptions.map((option) => (
-                <Button
-                  key={option}
-                  title={option}
-                  variant={relationship === option ? 'primary' : 'outline'}
-                  size="small"
-                  onPress={() => setRelationship(option)}
-                  style={styles.relationshipButton}
-                />
-              ))}
-            </ScrollView>
-            {relationshipError && (
-              <Text style={styles.errorText}>{relationshipError}</Text>
-            )}
+          <Text style={styles.label}>Relationship</Text>
+          <View style={styles.relationshipContainer}>
+            {relationshipOptions.map(option => (
+              <Button
+                key={option}
+                title={option}
+                variant={relationship === option ? "primary" : "outline"}
+                size="small"
+                onPress={() => setRelationship(option)}
+                style={styles.relationshipButton}
+              />
+            ))}
           </View>
+          {errors.relationship ? (
+            <Text style={styles.errorText}>{errors.relationship}</Text>
+          ) : null}
           
-          <View style={styles.switchContainer}>
-            <Text style={styles.switchLabel}>Set as Primary Contact</Text>
+          <View style={styles.trustedContainer}>
+            <View style={styles.trustedTextContainer}>
+              <Heart 
+                size={20} 
+                color={isTrusted ? Colors.primary : Colors.gray[400]} 
+                fill={isTrusted ? Colors.primary : "transparent"} 
+              />
+              <View>
+                <Text style={styles.trustedLabel}>Trusted Contact</Text>
+                <Text style={styles.trustedDescription}>
+                  Trusted contacts will be notified in emergencies and shown on your home screen
+                </Text>
+              </View>
+            </View>
             <Switch
-              value={isPrimary}
-              onValueChange={setIsPrimary}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.white}
+              value={isTrusted}
+              onValueChange={setIsTrusted}
+              trackColor={{ false: Colors.gray[300], true: Colors.primary + "80" }}
+              thumbColor={isTrusted ? Colors.primary : Colors.white}
             />
           </View>
-          <Text style={styles.switchDescription}>
-            Primary contacts are called first during emergencies.
-          </Text>
           
-          <View style={styles.buttonContainer}>
-            <Button
-              title="Save Contact"
-              onPress={handleSave}
-              isLoading={isLoading}
-              fullWidth
-            />
-          </View>
+          <Button
+            title={isEditing ? "Save Changes" : "Add Contact"}
+            onPress={handleSave}
+            style={styles.saveButton}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -187,78 +191,62 @@ export default function AddContactScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: Colors.white,
   },
-  keyboardAvoid: {
-    flex: 1,
-  },
-  scrollView: {
+  keyboardAvoidingView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: 16,
   },
-  header: {
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.textDark,
-    marginBottom: 8,
-  },
-  subtitle: {
+  label: {
     fontSize: 16,
-    color: colors.textLight,
-  },
-  errorContainer: {
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: 14,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  pickerContainer: {
-    marginBottom: 20,
-  },
-  pickerLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
+    color: Colors.text,
     marginBottom: 8,
-    color: colors.textDark,
   },
-  relationshipOptions: {
-    paddingVertical: 8,
-    flexWrap: 'wrap',
+  relationshipContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
   },
   relationshipButton: {
-    marginRight: 8,
     marginBottom: 8,
   },
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  switchLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.textDark,
-  },
-  switchDescription: {
+  errorText: {
+    color: Colors.danger,
     fontSize: 14,
-    color: colors.textLight,
+    marginTop: -8,
+    marginBottom: 16,
+  },
+  trustedContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: Colors.gray[50],
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 24,
   },
-  buttonContainer: {
-    marginTop: 16,
+  trustedTextContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    flex: 1,
+    gap: 12,
   },
+  trustedLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  trustedDescription: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    flex: 1,
+  },
+  saveButton: {
+    marginTop: 8,
+  }
 });

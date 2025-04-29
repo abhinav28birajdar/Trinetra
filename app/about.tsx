@@ -1,163 +1,115 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   Image,
   TouchableOpacity,
-  Linking
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { 
-  Shield, 
-  MapPin, 
-  Bell, 
-  Phone, 
-  Users, 
-  Mail,
-  Globe
-} from 'lucide-react-native';
-import { colors } from '@/constants/Colors';
+  Linking,
+  SafeAreaView
+} from "react-native";
+import { Mail, Globe, Heart } from "lucide-react-native";
+import Colors from "@/constants/colors";
+import { router } from "expo-router";
 
 export default function AboutScreen() {
-  const router = useRouter();
-  
-  const handleContactPress = () => {
-    router.push('./contact');
-  };
-  
-  const handleEmailPress = async () => {
-    try {
-      await Linking.openURL('mailto:support@shesafe.app');
-    } catch (error) {
-      console.error('Failed to open email:', error);
-    }
-  };
-  
-  const handleWebsitePress = async () => {
-    try {
-      await Linking.openURL('https://www.shesafe.app');
-    } catch (error) {
-      console.error('Failed to open website:', error);
+  const handleOpenLink = async (url: string) => {
+    const canOpen = await Linking.canOpenURL(url);
+    if (canOpen) {
+      await Linking.openURL(url);
     }
   };
   
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.logoContainer}>
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?ixlib=rb-1.2.1&auto=format&fit=crop&w=1074&q=80' }}
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Image
+            source={{ uri: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?q=80&w=300&auto=format&fit=crop" }}
             style={styles.logo}
           />
-          <Text style={styles.appName}>SheSafe</Text>
-          <Text style={styles.tagline}>Your safety, one tap away.</Text>
+          <Text style={styles.title}>SheSafe</Text>
+          <Text style={styles.version}>Version 1.0.0</Text>
         </View>
         
-        <View style={styles.aboutContainer}>
-          <Text style={styles.aboutText}>
-            SheSafe is a personal safety app made to empower women by offering real-time protection and fast emergency support. Whether walking home at night, traveling, or working late—SheSafe helps you stay connected and safe with just one tap.
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About SheSafe</Text>
+          <Text style={styles.paragraph}>
+            SheSafe is a personal safety app designed to help women feel safer by providing quick access to emergency services and trusted contacts.
+          </Text>
+          <Text style={styles.paragraph}>
+            Our mission is to empower women with tools and resources to enhance their safety and security in everyday situations.
           </Text>
         </View>
         
-        <View style={styles.featuresContainer}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Key Features</Text>
           
           <View style={styles.featureItem}>
-            <View style={styles.featureIconContainer}>
-              <Bell size={24} color={colors.danger} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>SOS Alert</Text>
-              <Text style={styles.featureDescription}>
-                One-tap emergency alert that notifies your trusted contacts with your location.
-              </Text>
-            </View>
+            <View style={[styles.featureDot, { backgroundColor: Colors.primary }]} />
+            <Text style={styles.featureText}>
+              <Text style={styles.featureHighlight}>SOS Alert:</Text> Quickly send emergency alerts with your location to trusted contacts
+            </Text>
           </View>
           
           <View style={styles.featureItem}>
-            <View style={styles.featureIconContainer}>
-              <MapPin size={24} color={colors.primary} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Live Location Tracking</Text>
-              <Text style={styles.featureDescription}>
-                Real-time location sharing with trusted contacts during emergencies.
-              </Text>
-            </View>
+            <View style={[styles.featureDot, { backgroundColor: Colors.secondary }]} />
+            <Text style={styles.featureText}>
+              <Text style={styles.featureHighlight}>Trusted Contacts:</Text> Add and manage emergency contacts who can help you in times of need
+            </Text>
           </View>
           
           <View style={styles.featureItem}>
-            <View style={styles.featureIconContainer}>
-              <Users size={24} color={colors.secondary} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Trusted Contacts</Text>
-              <Text style={styles.featureDescription}>
-                Add and manage emergency contacts who will be alerted in case of danger.
-              </Text>
-            </View>
+            <View style={[styles.featureDot, { backgroundColor: Colors.info }]} />
+            <Text style={styles.featureText}>
+              <Text style={styles.featureHighlight}>Safety Resources:</Text> Access safety tips and emergency helplines
+            </Text>
           </View>
           
           <View style={styles.featureItem}>
-            <View style={styles.featureIconContainer}>
-              <Phone size={24} color={colors.info} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Emergency Helplines</Text>
-              <Text style={styles.featureDescription}>
-                Quick access to important emergency numbers.
-              </Text>
-            </View>
-          </View>
-          
-          <View style={styles.featureItem}>
-            <View style={styles.featureIconContainer}>
-              <Shield size={24} color={colors.success} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Safety Tips</Text>
-              <Text style={styles.featureDescription}>
-                Daily safety advice to help you stay aware and protected.
-              </Text>
-            </View>
+            <View style={[styles.featureDot, { backgroundColor: Colors.success }]} />
+            <Text style={styles.featureText}>
+              <Text style={styles.featureHighlight}>Evidence Collection:</Text> Capture and store evidence securely
+            </Text>
           </View>
         </View>
         
-        <View style={styles.contactContainer}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Contact Us</Text>
           
           <TouchableOpacity 
             style={styles.contactItem}
-            onPress={handleEmailPress}
+            onPress={() => handleOpenLink("mailto:support@shesafe.com")}
           >
-            <Mail size={20} color={colors.primary} />
-            <Text style={styles.contactText}>support@shesafe.app</Text>
+            <Mail size={20} color={Colors.primary} />
+            <Text style={styles.contactText}>support@shesafe.com</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={styles.contactItem}
-            onPress={handleWebsitePress}
+            onPress={() => handleOpenLink("https://www.shesafe.com")}
           >
-            <Globe size={20} color={colors.primary} />
-            <Text style={styles.contactText}>www.shesafe.app</Text>
+            <Globe size={20} color={Colors.primary} />
+            <Text style={styles.contactText}>www.shesafe.com</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={styles.contactButton}
-            onPress={handleContactPress}
+            onPress={() => router.push("/contact")}
           >
             <Text style={styles.contactButtonText}>Contact Support</Text>
           </TouchableOpacity>
         </View>
         
-        <Text style={styles.versionText}>Version 1.0.0</Text>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Made with <Heart size={14} color={Colors.primary} fill={Colors.primary} /> for women's safety
+          </Text>
+          <Text style={styles.copyright}>
+            © 2023 SheSafe. All rights reserved.
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -166,110 +118,107 @@ export default function AboutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
-  },
-  scrollView: {
-    flex: 1,
+    backgroundColor: Colors.white,
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: 24,
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
+  header: {
+    alignItems: "center",
+    marginBottom: 32,
   },
   logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 16,
   },
-  appName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginTop: 12,
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: Colors.primary,
+    marginBottom: 4,
   },
-  tagline: {
+  version: {
     fontSize: 16,
-    color: colors.textLight,
-    marginTop: 4,
+    color: Colors.textSecondary,
   },
-  aboutContainer: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 20,
+  section: {
     marginBottom: 24,
-  },
-  aboutText: {
-    fontSize: 16,
-    color: colors.textDark,
-    lineHeight: 24,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.textDark,
-    marginBottom: 16,
+    fontWeight: "600",
+    color: Colors.text,
+    marginBottom: 12,
   },
-  featuresContainer: {
-    marginBottom: 24,
+  paragraph: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    lineHeight: 24,
+    marginBottom: 12,
   },
   featureItem: {
-    flexDirection: 'row',
-    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 12,
   },
-  featureIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.cardBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
+  featureDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 8,
+    marginRight: 12,
   },
-  featureContent: {
+  featureText: {
     flex: 1,
-  },
-  featureTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.textDark,
-    marginBottom: 4,
+    color: Colors.textSecondary,
+    lineHeight: 24,
   },
-  featureDescription: {
-    fontSize: 14,
-    color: colors.textLight,
-    lineHeight: 20,
-  },
-  contactContainer: {
-    marginBottom: 24,
+  featureHighlight: {
+    fontWeight: "600",
+    color: Colors.text,
   },
   contactItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
   },
   contactText: {
     fontSize: 16,
-    color: colors.primary,
+    color: Colors.primary,
     marginLeft: 12,
   },
   contactButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 8,
+    backgroundColor: Colors.primary,
     paddingVertical: 12,
-    alignItems: 'center',
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: "center",
     marginTop: 8,
   },
   contactButtonText: {
-    color: colors.white,
+    color: Colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
-  versionText: {
-    textAlign: 'center',
+  footer: {
+    alignItems: "center",
+    marginTop: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray[200],
+  },
+  footerText: {
     fontSize: 14,
-    color: colors.textLight,
+    color: Colors.textSecondary,
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
   },
+  copyright: {
+    fontSize: 12,
+    color: Colors.textLight,
+  }
 });

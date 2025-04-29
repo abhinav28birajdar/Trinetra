@@ -1,54 +1,39 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { 
-  MapPin, 
-  Sun, 
-  Bus, 
-  Bell, 
-  Eye, 
-  Brain, 
-  Phone, 
-  Shield 
-} from 'lucide-react-native';
-import { colors } from '@/constants/Colors';
-import { SafetyTip } from '@/types';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { ChevronRight } from "lucide-react-native";
+import Colors from "@/constants/colors";
+import { SafetyTip } from "@/constants/safety-tips";
 
 interface SafetyTipCardProps {
   tip: SafetyTip;
+  onNext?: () => void;
+  showControls?: boolean;
 }
 
-export const SafetyTipCard: React.FC<SafetyTipCardProps> = ({ tip }) => {
-  const getIcon = () => {
-    switch (tip.icon) {
-      case 'map-pin':
-        return <MapPin size={24} color={colors.primary} />;
-      case 'sun':
-        return <Sun size={24} color={colors.warning} />;
-      case 'bus':
-        return <Bus size={24} color={colors.secondary} />;
-      case 'bell':
-        return <Bell size={24} color={colors.danger} />;
-      case 'eye':
-        return <Eye size={24} color={colors.info} />;
-      case 'brain':
-        return <Brain size={24} color={colors.secondary} />;
-      case 'phone':
-        return <Phone size={24} color={colors.primary} />;
-      case 'shield':
-        return <Shield size={24} color={colors.success} />;
-      default:
-        return <Bell size={24} color={colors.primary} />;
-    }
-  };
-
+export const SafetyTipCard: React.FC<SafetyTipCardProps> = ({ 
+  tip, 
+  onNext,
+  showControls = true
+}) => {
   return (
     <View style={styles.container}>
-      <View style={styles.iconContainer}>
-        {getIcon()}
+      <View style={styles.header}>
+        <Text style={styles.title}>Safety Tip</Text>
+        {showControls && onNext && (
+          <TouchableOpacity onPress={onNext} style={styles.nextButton}>
+            <Text style={styles.nextButtonText}>Next Tip</Text>
+            <ChevronRight size={18} color={Colors.primary} />
+          </TouchableOpacity>
+        )}
       </View>
-      <View style={styles.contentContainer}>
-        <Text style={styles.title}>{tip.title}</Text>
-        <Text style={styles.description}>{tip.description}</Text>
+      
+      <View style={styles.content}>
+        <Text style={styles.tipTitle}>{tip.title}</Text>
+        <Text style={styles.tipContent}>{tip.content}</Text>
+        
+        <View style={styles.categoryContainer}>
+          <Text style={styles.categoryText}>{tip.category}</Text>
+        </View>
       </View>
     </View>
   );
@@ -56,38 +41,63 @@ export const SafetyTipCard: React.FC<SafetyTipCardProps> = ({ tip }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: colors.black,
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    marginBottom: 16,
   },
-  iconContainer: {
-    marginRight: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.cardBackground,
-  },
-  contentContainer: {
-    flex: 1,
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.tertiary,
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.textDark,
-    marginBottom: 4,
+    fontWeight: "600",
+    color: Colors.primary,
   },
-  description: {
+  nextButton: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  nextButtonText: {
     fontSize: 14,
-    color: colors.textLight,
-    lineHeight: 20,
+    color: Colors.primary,
+    marginRight: 4,
   },
+  content: {
+    padding: 16,
+  },
+  tipTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  tipContent: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  categoryContainer: {
+    alignSelf: "flex-start",
+    backgroundColor: Colors.gray[100],
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
+  categoryText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    textTransform: "capitalize",
+  }
 });

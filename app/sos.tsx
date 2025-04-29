@@ -1,272 +1,386 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ActivityIndicator,
-  Platform
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { AlertTriangle, MapPin, Phone, Clock } from 'lucide-react-native';
-import { colors } from '@/constants/Colors';
-import { Button } from '@/components/Button';
-import { useSOSStore } from '@/store/sos-store';
-import { useContactsStore } from '@/store/contacts-store';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  Platform,
+  Animated,
+  Easing
+} from "react-native";
+import { router } from "expo-router";
+import { Check, Volume2, VolumeX, MapPin, Phone } from "lucide-react-native";
+import { Button } from "@/components/Button";
+import Colors from "@/constants/colors";
+import { useSOSStore } from "@/store/sos-store";
+import { useContactsStore } from "@/store/contacts-store";
+import { useSettingsStore } from "@/store/settings-store";
+import * as Haptics from "expo-haptics";
 
 export default function SOSScreen() {
-  const router = useRouter();
-  const { isActive, activatedAt, currentLocation, deactivateSOS } = useSOSStore();
-  const { contacts } = useContactsStore();
-  const [timeElapsed, setTimeElapsed] = useState('00:00');
-  const [countdown, setCountdown] = useState(5);
-  const [isCancelling, setIsCancelling] = useState(false);
+  const { 
+    isActive, 
+    countdown, 
+    location, 
+    activatedAt, 
+    notifiedContacts,
+    decrementCountdown,
+    cancelSOS 
+  } = useSOSStore();
   
-  // If SOS is not active, redirect to home
+  const { contacts } = useContactsStore();
+  const { settings } = useSettingsStore();
+  
+  const [sirenActive, setSirenActive] = useState(settings.sirenEnabled);
+  const pulseAnim = new Animated.Value(1);
+  
+  // Redirect to home if SOS is not active
   useEffect(() => {
     if (!isActive) {
-      router.replace('./(tabs)');
+      router.replace("/");
     }
-  }, [isActive, router]);
+  }, [isActive]);
   
-  // Calculate time elapsed since SOS activation
+  // Countdown timer
   useEffect(() => {
-    if (activatedAt) {
-      const interval = setInterval(() => {
-        const startTime = new Date(activatedAt).getTime();
-        const now = new Date().getTime();
-        const diff = now - startTime;
-        
-        const minutes = Math.floor(diff / 60000);
-        const seconds = Math.floor((diff % 60000) / 1000);
-        
-        setTimeElapsed(
-          `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-        );
-      }, 1000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [activatedAt]);
-  
-  // Handle cancel with countdown
-  const handleCancel = () => {
-    setIsCancelling(true);
+    if (!isActive || countdown <= 0) return;
     
-    const countdownInterval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          deactivateSOS();
-          return 0;
-        }
-        return prev - 1;
-      });
+    const timer = setTimeout(() => {
+      decrementCountdown();
+      
+      // Trigger haptic feedback on each countdown tick
+      if (Platform.OS !== "web" && settings.vibrationEnabled) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
     }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [countdown, isActive]);
+  
+  // Pulse animation
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 800,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: Platform.OS !== "web",
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: Platform.OS !== "web",
+        }),
+      ])
+    );
+    
+    pulse.start();
+    
+    return () => {
+      pulse.stop();
+    };
+  }, []);
+  
+  // Get notified contacts
+  const notifiedContactDetails = contacts.filter(contact => 
+    notifiedContacts.includes(contact.id)
+  );
+  
+  // Format activation time
+  const formatTime = (timestamp: Date | null) => {
+    if (!timestamp) return "";
+    
+    return timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
   
-  // Handle cancel abort
-  const handleCancelAbort = () => {
-    setIsCancelling(false);
-    setCountdown(5);
+  const handleToggleSiren = () => {
+    setSirenActive(!sirenActive);
+  };
+  
+  const handleCancel = () => {
+    cancelSOS();
+    router.replace("/");
   };
   
   if (!isActive) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </SafeAreaView>
-    );
+    return null; // Will redirect to home
   }
   
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.alertHeader}>
-          <AlertTriangle size={40} color={colors.danger} />
-          <Text style={styles.alertTitle}>SOS Alert Active</Text>
-          <View style={styles.timerContainer}>
-            <Clock size={16} color={colors.danger} />
-            <Text style={styles.timerText}>{timeElapsed}</Text>
-          </View>
-        </View>
-        
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoText}>
-            Your trusted contacts have been alerted with your current location.
-          </Text>
-          
-          {currentLocation && (
-            <View style={styles.locationContainer}>
-              <MapPin size={20} color={colors.primary} />
-              <Text style={styles.locationText}>
-                {currentLocation.address || 
-                  `${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}`}
-              </Text>
+        <View style={styles.header}>
+          {Platform.OS !== "web" ? (
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <View style={styles.sosIndicator}>
+                <Text style={styles.sosText}>SOS</Text>
+              </View>
+            </Animated.View>
+          ) : (
+            <View style={styles.sosIndicator}>
+              <Text style={styles.sosText}>SOS</Text>
             </View>
           )}
           
-          <View style={styles.contactsContainer}>
-            <Text style={styles.contactsTitle}>Contacts Notified:</Text>
-            {contacts.map((contact: { id: React.Key | null | undefined; fullName: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; relationship: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; isPrimary: any; }) => (
-              <View key={contact.id} style={styles.contactItem}>
-                <Text style={styles.contactName}>{contact.fullName}</Text>
-                <Text style={styles.contactRelation}>({contact.relationship})</Text>
-                {contact.isPrimary && (
-                  <View style={styles.primaryBadge}>
-                    <Text style={styles.primaryText}>Primary</Text>
-                  </View>
-                )}
-              </View>
-            ))}
+          <Text style={styles.title}>Emergency Mode Active</Text>
+          
+          {activatedAt && (
+            <Text style={styles.subtitle}>
+              Activated at {formatTime(activatedAt)}
+            </Text>
+          )}
+          
+          {countdown > 0 && (
+            <View style={styles.countdownContainer}>
+              <Text style={styles.countdownText}>
+                Auto-cancel in: <Text style={styles.countdownNumber}>{countdown}s</Text>
+              </Text>
+            </View>
+          )}
+        </View>
+        
+        <View style={styles.infoSection}>
+          <View style={styles.infoHeader}>
+            <MapPin size={20} color={Colors.primary} />
+            <Text style={styles.infoTitle}>Your Location</Text>
+          </View>
+          
+          <View style={styles.locationInfo}>
+            {location ? (
+              <Text style={styles.locationText}>
+                Latitude: {location.latitude.toFixed(6)}{"\n"}
+                Longitude: {location.longitude.toFixed(6)}
+              </Text>
+            ) : (
+              <Text style={styles.locationText}>Fetching your location...</Text>
+            )}
           </View>
         </View>
         
-        <View style={styles.actionsContainer}>
-          {isCancelling ? (
-            <View style={styles.cancellingContainer}>
-              <Text style={styles.countdownText}>
-                Cancelling in {countdown} seconds...
-              </Text>
-              <Button 
-                title="Keep SOS Active"
-                onPress={handleCancelAbort}
-                variant="outline"
-                style={styles.keepActiveButton}
-              />
+        <View style={styles.infoSection}>
+          <View style={styles.infoHeader}>
+            <Phone size={20} color={Colors.primary} />
+            <Text style={styles.infoTitle}>Notified Contacts</Text>
+          </View>
+          
+          {notifiedContactDetails.length > 0 ? (
+            <View style={styles.contactsList}>
+              {notifiedContactDetails.map(contact => (
+                <View key={contact.id} style={styles.contactItem}>
+                  <View style={styles.contactAvatar}>
+                    <Text style={styles.contactInitial}>{contact.name.charAt(0)}</Text>
+                  </View>
+                  <View style={styles.contactInfo}>
+                    <Text style={styles.contactName}>{contact.name}</Text>
+                    <Text style={styles.contactRelation}>{contact.relationship}</Text>
+                  </View>
+                </View>
+              ))}
             </View>
           ) : (
-            <Button 
-              title="I'm Safe (Cancel SOS)"
-              onPress={handleCancel}
-              variant="success"
-              size="large"
-              fullWidth
-            />
+            <Text style={styles.noContactsText}>No contacts have been notified yet.</Text>
           )}
         </View>
+        
+        <View style={styles.sirenControl}>
+          <Text style={styles.sirenText}>Emergency Siren</Text>
+          <TouchableOpacity 
+            style={styles.sirenToggle}
+            onPress={handleToggleSiren}
+          >
+            {sirenActive ? (
+              <Volume2 size={24} color={Colors.primary} />
+            ) : (
+              <VolumeX size={24} color={Colors.gray[500]} />
+            )}
+            <Text style={[
+              styles.sirenStatus,
+              { color: sirenActive ? Colors.primary : Colors.gray[500] }
+            ]}>
+              {sirenActive ? "ON" : "OFF"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      
+      <View style={styles.footer}>
+        <Button
+          title="I'm Safe Now"
+          variant="success"
+          size="large"
+          leftIcon={<Check size={24} color={Colors.white} />}
+          onPress={handleCancel}
+          style={styles.safeButton}
+        />
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-  },
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: Colors.white,
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 24,
   },
-  alertHeader: {
-    alignItems: 'center',
-    marginBottom: 24,
+  header: {
+    alignItems: "center",
+    marginBottom: 32,
   },
-  alertTitle: {
+  sosIndicator: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.accent,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  sosText: {
+    color: Colors.white,
     fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.danger,
-    marginTop: 12,
+    fontWeight: "bold",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: Colors.text,
     marginBottom: 8,
+    textAlign: "center",
   },
-  timerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  timerText: {
+  subtitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.danger,
-    marginLeft: 8,
+    color: Colors.textSecondary,
+    marginBottom: 16,
+    textAlign: "center",
   },
-  infoContainer: {
-    flex: 1,
-  },
-  infoText: {
-    fontSize: 16,
-    color: colors.textDark,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
-  },
-  locationText: {
-    fontSize: 14,
-    color: colors.textDark,
-    marginLeft: 12,
-    flex: 1,
-  },
-  contactsContainer: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  contactsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textDark,
-    marginBottom: 12,
-  },
-  contactItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  contactName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.textDark,
-  },
-  contactRelation: {
-    fontSize: 14,
-    color: colors.textLight,
-    marginLeft: 4,
-  },
-  primaryBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginLeft: 8,
-  },
-  primaryText: {
-    color: colors.white,
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  actionsContainer: {
-    marginTop: 24,
-  },
-  cancellingContainer: {
-    alignItems: 'center',
+  countdownContainer: {
+    backgroundColor: Colors.accent + "20",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
   },
   countdownText: {
     fontSize: 16,
-    color: colors.danger,
-    fontWeight: '500',
+    color: Colors.accent,
+    fontWeight: "500",
+  },
+  countdownNumber: {
+    fontWeight: "bold",
+  },
+  infoSection: {
+    backgroundColor: Colors.gray[50],
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 16,
   },
-  keepActiveButton: {
-    marginTop: 8,
+  infoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text,
+    marginLeft: 8,
+  },
+  locationInfo: {
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    padding: 12,
+  },
+  locationText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+  contactsList: {
+    gap: 12,
+  },
+  contactItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    padding: 12,
+  },
+  contactAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.tertiary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  contactInitial: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: Colors.primary,
+  },
+  contactInfo: {
+    flex: 1,
+  },
+  contactName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  contactRelation: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  noContactsText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    padding: 12,
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+  },
+  sirenControl: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: Colors.gray[50],
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  sirenText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text,
+  },
+  sirenToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  sirenStatus: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  footer: {
+    padding: 24,
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray[200],
+  },
+  safeButton: {
+    height: 56,
   },
 });

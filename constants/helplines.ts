@@ -1,50 +1,80 @@
-export const helplines = [
-    {
-      id: '1',
-      service: 'Police',
-      number: '100',
-      description: 'National emergency police number'
-    },
-    {
-      id: '2',
-      service: 'Women Helpline',
-      number: '1091',
-      description: 'National women helpline for distress'
-    },
-    {
-      id: '3',
-      service: 'Ambulance',
-      number: '102',
-      description: 'Medical emergency services'
-    },
-    {
-      id: '4',
-      service: 'Mental Health',
-      number: '1800-599-0019',
-      description: 'Mental health support and counseling'
-    },
-    {
-      id: '5',
-      service: 'Child Helpline',
-      number: '1098',
-      description: 'Child protection and welfare'
-    },
-    {
-      id: '6',
-      service: 'Domestic Violence',
-      number: '181',
-      description: 'Support for domestic violence victims'
-    },
-    {
-      id: '7',
-      service: 'Road Accident',
-      number: '1073',
-      description: 'Highway patrol and accident reporting'
-    },
-    {
-      id: '8',
-      service: 'Fire',
-      number: '101',
-      description: 'Fire emergency services'
-    }
-  ];
+export interface Helpline {
+  id: string;
+  name: string;
+  number: string;
+  description: string;
+  category: "emergency" | "women" | "health" | "other";
+}
+
+export const helplines: Helpline[] = [
+  {
+    id: "1",
+    name: "Women Helpline",
+    number: "1091",
+    description: "24/7 emergency helpline for women in distress",
+    category: "women"
+  },
+  {
+    id: "2",
+    name: "Police",
+    number: "100",
+    description: "Emergency police services",
+    category: "emergency"
+  },
+  {
+    id: "3",
+    name: "Ambulance",
+    number: "102",
+    description: "Medical emergency services",
+    category: "health"
+  },
+  {
+    id: "4",
+    name: "Domestic Violence Helpline",
+    number: "181",
+    description: "Support for victims of domestic violence",
+    category: "women"
+  },
+  {
+    id: "5",
+    name: "Women Helpline (Domestic Abuse)",
+    number: "1090",
+    description: "Dedicated helpline for domestic abuse cases",
+    category: "women"
+  },
+  {
+    id: "6",
+    name: "National Commission for Women",
+    number: "011-26942369",
+    description: "Government body for women's rights and issues",
+    category: "women"
+  },
+  {
+    id: "7",
+    name: "Emergency Disaster Management",
+    number: "108",
+    description: "Disaster management services",
+    category: "emergency"
+  },
+  {
+    id: "8",
+    name: "Missing Child And Women",
+    number: "1094",
+    description: "Helpline for reporting missing persons",
+    category: "women"
+  },
+  {
+    id: "9",
+    name: "Railway Protection",
+    number: "1322",
+    description: "Security helpline for railway travel",
+    category: "other"
+  },
+  {
+    id: "10",
+    name: "Road Accident Emergency",
+    number: "1073",
+    description: "Emergency services for road accidents",
+    category: "emergency"
+  }
+];

@@ -1,53 +1,46 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppSettings } from '@/types';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppSettings } from "@/types";
 
-interface SettingsState {
+interface SettingsStore {
   settings: AppSettings;
-  isLoading: boolean;
-  updateSettings: (newSettings: Partial<AppSettings>) => Promise<void>;
+  updateSettings: (updates: Partial<AppSettings>) => void;
+  resetSettings: () => void;
 }
 
 const defaultSettings: AppSettings = {
-  enableSiren: true,
-  autoCallPrimary: true,
-  language: 'en',
-  enableFakeCall: true,
-  darkMode: false
+  theme: "light",
+  notifications: true,
+  locationSharing: true,
+  autoSOS: false,
+  sosCountdownDuration: 5, // seconds
+  sirenEnabled: true,
+  vibrationEnabled: true,
+  language: "en"
 };
 
-export const useSettingsStore = create<SettingsState>()(
+export const useSettingsStore = create<SettingsStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       settings: defaultSettings,
-      isLoading: false,
       
-      updateSettings: async (newSettings) => {
-        set({ isLoading: true });
-        
-        try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
-          const updatedSettings = {
-            ...get().settings,
-            ...newSettings
-          };
-          
-          set({ 
-            settings: updatedSettings,
-            isLoading: false
-          });
-        } catch (error) {
-          console.error('Failed to update settings:', error);
-          set({ isLoading: false });
-        }
+      updateSettings: (updates) => {
+        set(state => ({
+          settings: {
+            ...state.settings,
+            ...updates
+          }
+        }));
+      },
+      
+      resetSettings: () => {
+        set({ settings: defaultSettings });
       }
     }),
     {
-      name: 'settings-storage',
-      storage: createJSONStorage(() => AsyncStorage)
+      name: "settings-storage",
+      storage: createJSONStorage(() => AsyncStorage),
     }
   )
 );

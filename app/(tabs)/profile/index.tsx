@@ -1,226 +1,180 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   Image,
-  Alert,
-  Platform
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Users, 
-  ChevronRight, 
-  Camera 
-} from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { colors } from '@/constants/Colors';
-import { Button } from '@/components/Button';
-import { useAuthStore } from '@/store/auth-store';
-import { useContactsStore } from '@/store/contacts-store';
-
-// Define proper types for the contact
-interface Contact {
-  id: string;
-  fullName: string;
-  relationship: string;
-  isPrimary: boolean;
-}
+  TouchableOpacity,
+  SafeAreaView
+} from "react-native";
+import { router } from "expo-router";
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Settings,
+  LogOut,
+  ChevronRight,
+  Shield,
+  Bell
+} from "lucide-react-native";
+import Colors from "@/constants/colors";
+import { useAuthStore } from "@/store/auth-store";
+import { Button } from "@/components/Button";
 
 export default function ProfileScreen() {
-  const router = useRouter();
-  const { user, updateProfile } = useAuthStore();
-  const { contacts } = useContactsStore();
-  const [isLoading, setIsLoading] = useState(false);
+  const { user, signOut } = useAuthStore();
   
   const handleEditProfile = () => {
-    // In a real app, this would navigate to an edit profile screen
-    Alert.alert(
-      'Edit Profile',
-      'This feature would allow you to edit your profile details.',
-      [{ text: 'OK' }]
-    );
+    // In a real app, navigate to edit profile screen
+    alert("Edit Profile functionality would be implemented here");
   };
   
-  const handleManageContacts = () => {
-    router.push('/contacts');
-  };
-  
-  const handlePickImage = async () => {
-    if (Platform.OS === 'web') {
-      Alert.alert('Not Available', 'Image picking is not available on web');
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      
-      // Request permission
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to your photo library to change your profile picture.');
-        setIsLoading(false);
-        return;
-      }
-      
-      // Launch image picker
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        // Update profile with new image
-        await updateProfile({ profilePicture: result.assets[0].uri });
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to update profile picture. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSignOut = () => {
+    signOut();
   };
   
   if (!user) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <Text>Loading profile...</Text>
-      </SafeAreaView>
+      <View style={styles.container}>
+        <Text style={styles.errorText}>User not found</Text>
+        <Button title="Sign In" onPress={() => router.replace("/sign-in")} />
+      </View>
     );
   }
   
+  const menuItems = [
+    {
+      id: "settings",
+      title: "App Settings",
+      description: "Notifications, privacy, and more",
+      icon: <Settings size={20} color={Colors.white} />,
+      iconBg: Colors.info,
+      route: "/settings"
+    },
+    {
+      id: "safety",
+      title: "Safety Tips",
+      description: "Learn how to stay safe",
+      icon: <Shield size={20} color={Colors.white} />,
+      iconBg: Colors.success,
+      route: "/safety-tips"
+    },
+    {
+      id: "notifications",
+      title: "Notifications",
+      description: "Manage your notifications",
+      icon: <Bell size={20} color={Colors.white} />,
+      iconBg: Colors.secondary,
+      route: "/settings"
+    }
+  ];
+  
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>My Profile</Text>
-        </View>
-        
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.profileHeader}>
-          <View style={styles.profileImageContainer}>
-            <Image 
-              source={{ 
-                uri: user.profilePicture || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80'
-              }}
-              style={styles.profileImage}
-            />
-            <TouchableOpacity 
-              style={styles.cameraButton}
-              onPress={handlePickImage}
-              disabled={isLoading}
-            >
-              <Camera size={16} color={colors.white} />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.profileName}>{user.fullName}</Text>
-        </View>
-        
-        <View style={styles.infoSection}>
-          <View style={styles.infoItem}>
-            <View style={styles.infoIconContainer}>
-              <Mail size={20} color={colors.primary} />
+          {user.profileImage ? (
+            <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
+          ) : (
+            <View style={styles.profileImagePlaceholder}>
+              <Text style={styles.profileInitial}>{user.name.charAt(0)}</Text>
             </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoValue}>{user.email}</Text>
-            </View>
-          </View>
+          )}
           
-          <View style={styles.infoItem}>
-            <View style={styles.infoIconContainer}>
-              <Phone size={20} color={colors.primary} />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Phone</Text>
-              <Text style={styles.infoValue}>{user.phoneNumber}</Text>
-            </View>
-          </View>
-          
-          <View style={styles.infoItem}>
-            <View style={styles.infoIconContainer}>
-              <MapPin size={20} color={colors.primary} />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Home Address</Text>
-              <Text style={styles.infoValue}>
-                {user.homeAddress || 'Not set'}
-              </Text>
-            </View>
-          </View>
+          <Text style={styles.profileName}>{user.name}</Text>
           
           <TouchableOpacity 
-            style={styles.contactsContainer}
-            onPress={handleManageContacts}
+            style={styles.editProfileButton}
+            onPress={handleEditProfile}
           >
-            <View style={styles.contactsHeader}>
-              <View style={styles.infoIconContainer}>
-                <Users size={20} color={colors.primary} />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Emergency Contacts</Text>
-                <Text style={styles.infoValue}>
-                  {contacts.length} {contacts.length === 1 ? 'contact' : 'contacts'} added
-                </Text>
-              </View>
-              <ChevronRight size={20} color={colors.textLight} />
-            </View>
-            
-            {contacts.length > 0 && (
-              <View style={styles.contactsList}>
-                {(contacts as Contact[]).slice(0, 3).map((contact) => (
-                  <View key={contact.id} style={styles.contactItem}>
-                    <View style={styles.contactInitial}>
-                      <Text style={styles.initialText}>
-                        {contact.fullName && typeof contact.fullName === 'string' 
-                          ? contact.fullName.charAt(0) 
-                          : '?'}
-                      </Text>
-                    </View>
-                    <View style={styles.contactDetails}>
-                      <Text style={styles.contactName}>{contact.fullName}</Text>
-                      <Text style={styles.contactRelation}>{contact.relationship}</Text>
-                    </View>
-                    {contact.isPrimary && (
-                      <View style={styles.primaryBadge}>
-                        <Text style={styles.primaryText}>Primary</Text>
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </View>
-            )}
+            <Text style={styles.editProfileText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
         
-        <View style={styles.actionsContainer}>
-          <Button
-            title="Edit Profile"
-            onPress={handleEditProfile}
-            variant="outline"
-            fullWidth
-            style={styles.actionButton}
-          />
+        <View style={styles.infoSection}>
+          <Text style={styles.sectionTitle}>Personal Information</Text>
           
-          <Button
-            title="Manage Emergency Contacts"
-            onPress={handleManageContacts}
-            fullWidth
-            style={styles.actionButton}
-          />
+          <View style={styles.infoCard}>
+            <View style={styles.infoItem}>
+              <View style={[styles.infoIcon, { backgroundColor: Colors.primary + "20" }]}>
+                <User size={20} color={Colors.primary} />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Full Name</Text>
+                <Text style={styles.infoValue}>{user.name}</Text>
+              </View>
+            </View>
+            
+            <View style={styles.infoItem}>
+              <View style={[styles.infoIcon, { backgroundColor: Colors.info + "20" }]}>
+                <Mail size={20} color={Colors.info} />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoValue}>{user.email}</Text>
+              </View>
+            </View>
+            
+            <View style={styles.infoItem}>
+              <View style={[styles.infoIcon, { backgroundColor: Colors.secondary + "20" }]}>
+                <Phone size={20} color={Colors.secondary} />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Phone Number</Text>
+                <Text style={styles.infoValue}>{user.phoneNumber}</Text>
+              </View>
+            </View>
+            
+            {user.address && (
+              <View style={styles.infoItem}>
+                <View style={[styles.infoIcon, { backgroundColor: Colors.success + "20" }]}>
+                  <MapPin size={20} color={Colors.success} />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Address</Text>
+                  <Text style={styles.infoValue}>{user.address}</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+        
+        <View style={styles.menuSection}>
+          <Text style={styles.sectionTitle}>Settings & Privacy</Text>
+          
+          {menuItems.map(item => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.menuItem}
+              onPress={() => router.push(item.route)}
+            >
+              <View style={[styles.menuIcon, { backgroundColor: item.iconBg }]}>
+                {item.icon}
+              </View>
+              
+              <View style={styles.menuContent}>
+                <Text style={styles.menuTitle}>{item.title}</Text>
+                <Text style={styles.menuDescription}>{item.description}</Text>
+              </View>
+              
+              <ChevronRight size={20} color={Colors.gray[400]} />
+            </TouchableOpacity>
+          ))}
+        </View>
+        
+        <TouchableOpacity 
+          style={styles.signOutButton}
+          onPress={handleSignOut}
+        >
+          <LogOut size={20} color={Colors.danger} />
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
+        
+        <View style={styles.versionInfo}>
+          <Text style={styles.versionText}>SheSafe v1.0.0</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -230,80 +184,81 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-  },
-  scrollView: {
-    flex: 1,
+    backgroundColor: Colors.gray[50],
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.textDark,
+    padding: 16,
   },
   profileHeader: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
-  },
-  profileImageContainer: {
-    position: 'relative',
-    marginBottom: 16,
   },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
+    marginBottom: 16,
   },
-  cameraButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: colors.primary,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.white,
+  profileImagePlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  profileInitial: {
+    fontSize: 40,
+    fontWeight: "bold",
+    color: Colors.white,
   },
   profileName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.textDark,
+    fontSize: 24,
+    fontWeight: "bold",
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  editProfileButton: {
+    backgroundColor: Colors.tertiary,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  editProfileText: {
+    color: Colors.primary,
+    fontWeight: "600",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: Colors.text,
+    marginBottom: 12,
   },
   infoSection: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
     marginBottom: 24,
   },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+  infoCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  infoIconContainer: {
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  infoIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 107, 139, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   infoContent: {
@@ -311,73 +266,83 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: colors.textLight,
-    marginBottom: 4,
+    color: Colors.textSecondary,
+    marginBottom: 2,
   },
   infoValue: {
     fontSize: 16,
-    color: colors.textDark,
-    fontWeight: '500',
+    color: Colors.text,
   },
-  contactsContainer: {
-    marginTop: 12,
+  menuSection: {
+    marginBottom: 24,
   },
-  contactsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  contactsList: {
-    marginTop: 8,
-  },
-  contactItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  contactInitial: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+  menuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
-  initialText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  contactDetails: {
+  menuContent: {
     flex: 1,
   },
-  contactName: {
+  menuTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  menuDescription: {
     fontSize: 14,
-    fontWeight: '500',
-    color: colors.textDark,
+    color: Colors.textSecondary,
   },
-  contactRelation: {
-    fontSize: 12,
-    color: colors.textLight,
-  },
-  primaryBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+  signOutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.white,
     borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    gap: 8,
   },
-  primaryText: {
-    color: colors.white,
-    fontSize: 10,
-    fontWeight: '500',
+  signOutText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.danger,
   },
-  actionsContainer: {
-    marginTop: 8,
+  versionInfo: {
+    alignItems: "center",
+    marginBottom: 16,
   },
-  actionButton: {
-    marginBottom: 12,
+  versionText: {
+    fontSize: 14,
+    color: Colors.textLight,
   },
+  errorText: {
+    fontSize: 16,
+    color: Colors.danger,
+    textAlign: "center",
+    marginTop: 24,
+    marginBottom: 16,
+  }
 });

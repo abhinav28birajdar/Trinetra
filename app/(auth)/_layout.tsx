@@ -1,24 +1,17 @@
 import { Stack } from "expo-router";
-import { View, StyleSheet } from "react-native";
-import { colors } from "@/constants/Colors";
+import Colors from "@/constants/colors";
 
 export default function AuthLayout() {
   return (
-    <View style={styles.container}>
-      <Stack screenOptions={{
+    <Stack
+      screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: colors.white }
-      }}>
-        <Stack.Screen name="sign-in" />
-        <Stack.Screen name="sign-up" />
-      </Stack>
-    </View>
+        contentStyle: { backgroundColor: Colors.white },
+        animation: "slide_from_right",
+      }}
+    >
+      <Stack.Screen name="sign-in" />
+      <Stack.Screen name="sign-up" />
+    </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
-});

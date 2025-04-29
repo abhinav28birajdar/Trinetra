@@ -1,62 +1,69 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Phone, Trash2, Star } from 'lucide-react-native';
-import { EmergencyContact } from '@/types';
-import { colors } from '@/constants/Colors';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { Phone, Star, Trash2, Edit } from "lucide-react-native";
+import Colors from "@/constants/colors";
+import { Contact } from "@/types";
 
 interface ContactCardProps {
-  contact: EmergencyContact;
+  contact: Contact;
   onCall: (phoneNumber: string) => void;
+  onEdit: (contact: Contact) => void;
   onDelete: (id: string) => void;
-  onSetPrimary: (id: string) => void;
+  onToggleTrusted: (id: string, isTrusted: boolean) => void;
 }
 
 export const ContactCard: React.FC<ContactCardProps> = ({
   contact,
   onCall,
+  onEdit,
   onDelete,
-  onSetPrimary
+  onToggleTrusted
 }) => {
   return (
     <View style={[
       styles.container,
-      contact.isPrimary && styles.primaryContainer
+      contact.isTrusted && styles.trustedContainer
     ]}>
+      <View style={styles.avatarContainer}>
+        <Text style={styles.avatarText}>{contact.name.charAt(0)}</Text>
+      </View>
+      
       <View style={styles.infoContainer}>
-        <Text style={styles.name}>{contact.fullName}</Text>
-        <Text style={styles.relationship}>{contact.relationship}</Text>
-        <Text style={styles.phone}>{contact.phoneNumber}</Text>
-        
-        {contact.isPrimary && (
-          <View style={styles.primaryBadge}>
-            <Star size={12} color={colors.white} />
-            <Text style={styles.primaryText}>Primary</Text>
-          </View>
-        )}
+        <Text style={styles.name}>{contact.name}</Text>
+        <Text style={styles.details}>{contact.relationship} • {contact.phoneNumber}</Text>
       </View>
       
       <View style={styles.actionsContainer}>
         <TouchableOpacity 
-          style={styles.actionButton}
+          style={styles.actionButton} 
           onPress={() => onCall(contact.phoneNumber)}
         >
-          <Phone size={20} color={colors.primary} />
+          <Phone size={20} color={Colors.primary} />
         </TouchableOpacity>
         
-        {!contact.isPrimary && (
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => onSetPrimary(contact.id)}
-          >
-            <Star size={20} color={colors.warning} />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity 
+          style={styles.actionButton} 
+          onPress={() => onToggleTrusted(contact.id, !contact.isTrusted)}
+        >
+          <Star 
+            size={20} 
+            color={contact.isTrusted ? Colors.warning : Colors.gray[400]} 
+            fill={contact.isTrusted ? Colors.warning : "transparent"} 
+          />
+        </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.actionButton}
+          style={styles.actionButton} 
+          onPress={() => onEdit(contact)}
+        >
+          <Edit size={20} color={Colors.secondary} />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.actionButton} 
           onPress={() => onDelete(contact.id)}
         >
-          <Trash2 size={20} color={colors.danger} />
+          <Trash2 size={20} color={Colors.danger} />
         </TouchableOpacity>
       </View>
     </View>
@@ -65,65 +72,55 @@ export const ContactCard: React.FC<ContactCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.white,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: colors.black,
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  primaryContainer: {
+  trustedContainer: {
     borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
-    backgroundColor: colors.cardBackground,
+    borderLeftColor: Colors.warning,
+  },
+  avatarContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: Colors.tertiary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: Colors.primary,
   },
   infoContainer: {
     flex: 1,
   },
   name: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.textDark,
+    fontWeight: "600",
+    color: Colors.text,
     marginBottom: 4,
   },
-  relationship: {
+  details: {
     fontSize: 14,
-    color: colors.textLight,
-    marginBottom: 4,
-  },
-  phone: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '500',
-  },
-  primaryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 8,
-    alignSelf: 'flex-start',
-  },
-  primaryText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '500',
-    marginLeft: 4,
+    color: Colors.textSecondary,
   },
   actionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   actionButton: {
     padding: 8,
-    marginLeft: 8,
-  },
+    marginLeft: 4,
+  }
 });

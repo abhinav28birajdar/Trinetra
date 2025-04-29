@@ -1,219 +1,182 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Image, 
-  TouchableOpacity, 
-  ScrollView,
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Keyboard
-} from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Input } from '@/components/Input';
-import { Button } from '@/components/Button';
-import { colors } from '@/constants/Colors';
-import { useAuthStore } from '@/store/auth-store';
+  ScrollView,
+  SafeAreaView
+} from "react-native";
+import { router } from "expo-router";
+import { User, Mail, Lock, Phone } from "lucide-react-native";
+import { Button } from "@/components/Button";
+import { Input } from "@/components/Input";
+import { useAuthStore } from "@/store/auth-store";
+import Colors from "@/constants/colors";
 
 export default function SignUpScreen() {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const { signUp, error, isLoading, resetError } = useAuthStore();
   
-  const [fullNameError, setFullNameError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [phoneNumberError, setPhoneNumberError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   
-  const { signUp, isLoading, error, clearError } = useAuthStore();
-  const router = useRouter();
+  const [validationErrors, setValidationErrors] = useState({
+    name: "",
+    email: "",
+    phoneNumber: "",
+    password: "",
+    confirmPassword: ""
+  });
   
-  const validateInputs = () => {
+  const validateForm = () => {
     let isValid = true;
+    const errors = {
+      name: "",
+      email: "",
+      phoneNumber: "",
+      password: "",
+      confirmPassword: ""
+    };
     
-    // Reset errors
-    setFullNameError('');
-    setEmailError('');
-    setPhoneNumberError('');
-    setPasswordError('');
-    setConfirmPasswordError('');
-    clearError();
-    
-    // Validate full name
-    if (!fullName.trim()) {
-      setFullNameError('Full name is required');
+    // Name validation
+    if (!name.trim()) {
+      errors.name = "Name is required";
       isValid = false;
     }
     
-    // Validate email
+    // Email validation
     if (!email.trim()) {
-      setEmailError('Email is required');
+      errors.email = "Email is required";
       isValid = false;
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      setEmailError('Please enter a valid email address');
+      errors.email = "Please enter a valid email";
       isValid = false;
     }
     
-    // Validate phone number
+    // Phone validation
     if (!phoneNumber.trim()) {
-      setPhoneNumberError('Phone number is required');
-      isValid = false;
-    } else if (!/^\+?[0-9\s]{10,15}$/.test(phoneNumber.replace(/\s/g, ''))) {
-      setPhoneNumberError('Please enter a valid phone number');
+      errors.phoneNumber = "Phone number is required";
       isValid = false;
     }
     
-    // Validate password
+    // Password validation
     if (!password) {
-      setPasswordError('Password is required');
+      errors.password = "Password is required";
       isValid = false;
     } else if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
+      errors.password = "Password must be at least 6 characters";
       isValid = false;
     }
     
-    // Validate confirm password
-    if (!confirmPassword) {
-      setConfirmPasswordError('Please confirm your password');
-      isValid = false;
-    } else if (password !== confirmPassword) {
-      setConfirmPasswordError('Passwords do not match');
+    // Confirm password validation
+    if (password !== confirmPassword) {
+      errors.confirmPassword = "Passwords do not match";
       isValid = false;
     }
     
+    setValidationErrors(errors);
     return isValid;
   };
   
   const handleSignUp = async () => {
-    Keyboard.dismiss();
-    if (validateInputs()) {
-      try {
-        await signUp({
-          fullName,
-          email,
-          phoneNumber,
-          password
-        });
-        
-        // Navigate to home after successful signup
-        router.replace('./(tabs)');
-      } catch (error) {
-        // Error is handled by the store
-        console.error('Sign up failed:', error);
-      }
+    resetError();
+    
+    if (validateForm()) {
+      await signUp(name, email, password, phoneNumber);
     }
   };
   
+  const handleSignIn = () => {
+    router.push("/sign-in");
+  };
+  
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 40}
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardAvoidingView}
       >
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.container}>
-            <View style={styles.logoContainer}>
-              <Image source={{ uri: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?ixlib=rb-1.2.1&auto=format&fit=crop&w=1074&q=80' }}
-                style={styles.logo}
-              />
-              <Text style={styles.appName}>SheSafe</Text>
-            </View>
-            
-            <View style={styles.formContainer}>
-              <Text style={styles.title}>Create Account</Text>
-              <Text style={styles.subtitle}>Join SheSafe and stay protected.</Text>
-              
-              {error && (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              )}
-              
-              <Input
-                label="Full Name"
-                value={fullName}
-                onChangeText={setFullName}
-                placeholder="Enter your full name"
-                autoCapitalize="words"
-                error={fullNameError}
-                style={styles.input}
-                returnKeyType="next"
-              />
-              
-              <Input
-                label="Email Address"
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Enter your email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                error={emailError}
-                style={styles.input}
-                returnKeyType="next"
-              />
-              
-              <Input
-                label="Phone Number"
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                placeholder="Enter your phone number"
-                keyboardType="phone-pad"
-                error={phoneNumberError}
-                style={styles.input}
-                returnKeyType="next"
-              />
-              
-              <Input
-                label="Password"
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Create a password"
-                secureTextEntry
-                error={passwordError}
-                style={styles.input}
-                returnKeyType="next"
-              />
-              
-              <Input
-                label="Confirm Password"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="Confirm your password"
-                secureTextEntry
-                error={confirmPasswordError}
-                style={styles.input}
-                returnKeyType="done"
-                onSubmitEditing={handleSignUp}
-              />
-              
-              <Button
-                title="Sign Up"
-                onPress={handleSignUp}
-                isLoading={isLoading}
-                style={styles.button}
-                fullWidth
-              />
-              
-              <View style={styles.signinContainer}>
-                <Text style={styles.signinText}>Already have an account? </Text>
-                <Link href="/(auth)/sign-in" asChild>
-                  <TouchableOpacity>
-                    <Text style={styles.signinLink}>Sign In</Text>
-                  </TouchableOpacity>
-                </Link>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Join SheSafe for your personal safety</Text>
+          </View>
+          
+          <View style={styles.formContainer}>
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
               </View>
-            </View>
+            )}
+            
+            <Input
+              label="Full Name"
+              placeholder="Enter your full name"
+              value={name}
+              onChangeText={setName}
+              error={validationErrors.name}
+              leftIcon={<User size={20} color={Colors.gray[500]} />}
+            />
+            
+            <Input
+              label="Email"
+              placeholder="Enter your email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              error={validationErrors.email}
+              leftIcon={<Mail size={20} color={Colors.gray[500]} />}
+            />
+            
+            <Input
+              label="Phone Number"
+              placeholder="Enter your phone number"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              keyboardType="phone-pad"
+              error={validationErrors.phoneNumber}
+              leftIcon={<Phone size={20} color={Colors.gray[500]} />}
+            />
+            
+            <Input
+              label="Password"
+              placeholder="Create a password"
+              value={password}
+              onChangeText={setPassword}
+              isPassword
+              error={validationErrors.password}
+              leftIcon={<Lock size={20} color={Colors.gray[500]} />}
+            />
+            
+            <Input
+              label="Confirm Password"
+              placeholder="Confirm your password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              isPassword
+              error={validationErrors.confirmPassword}
+              leftIcon={<Lock size={20} color={Colors.gray[500]} />}
+            />
+            
+            <Button
+              title="Sign Up"
+              onPress={handleSignUp}
+              loading={isLoading}
+              style={styles.signUpButton}
+            />
+          </View>
+          
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Already have an account?</Text>
+            <TouchableOpacity onPress={handleSignIn}>
+              <Text style={styles.signInText}>Sign In</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -222,83 +185,58 @@ export default function SignUpScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: Colors.white,
   },
-  keyboardAvoid: {
-    flex: 1,
-  },
-  scrollView: {
+  keyboardAvoidingView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 20,
-  },
-  container: {
-    flex: 1,
     padding: 24,
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  appName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginTop: 12,
-  },
-  formContainer: {
-    width: '100%',
+  header: {
+    marginBottom: 32,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.textDark,
+    fontSize: 28,
+    fontWeight: "bold",
+    color: Colors.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: colors.textLight,
+    color: Colors.textSecondary,
+  },
+  formContainer: {
     marginBottom: 24,
   },
   errorContainer: {
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    backgroundColor: Colors.danger + "20", // 20% opacity
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   errorText: {
-    color: colors.danger,
+    color: Colors.danger,
     fontSize: 14,
   },
-  input: {
-    marginBottom: 16,
+  signUpButton: {
+    marginTop: 16,
   },
-  button: {
-    marginTop: 8,
-    marginBottom: 24,
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 16,
   },
-  signinContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 24,
+  footerText: {
+    color: Colors.textSecondary,
+    marginRight: 4,
   },
-  signinText: {
-    color: colors.textLight,
-    fontSize: 14,
-  },
-  signinLink: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  signInText: {
+    color: Colors.primary,
+    fontWeight: "bold",
+  }
 });

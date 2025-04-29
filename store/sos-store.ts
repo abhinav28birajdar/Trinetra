@@ -1,103 +1,117 @@
-import { create } from 'zustand';
-import { Platform } from 'react-native';
-import { useContactsStore } from './contacts-store';
-import { useSettingsStore } from './settings-store';
+import { create } from "zustand";
+import { SOSState } from "@/types";
+import { useContactsStore } from "./contacts-store";
+import { useSettingsStore } from "./settings-store";
+import * as Location from "expo-location";
+import { Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 
-interface SOSState {
-  isActive: boolean;
-  activatedAt: string | null;
-  currentLocation: {
-    latitude: number;
-    longitude: number;
-    address?: string;
-  } | null;
-  isLoading: boolean;
-  error: string | null;
-  activateSOS: () => Promise<void>;
-  deactivateSOS: () => Promise<void>;
-  updateLocation: (location: { latitude: number; longitude: number; address?: string }) => void;
+interface SOSStore extends SOSState {
+  initiateSOS: () => Promise<void>;
+  cancelSOS: () => void;
+  updateLocation: () => Promise<void>;
+  decrementCountdown: () => void;
+  resetCountdown: () => void;
 }
 
-export const useSOSStore = create<SOSState>()((set, get) => ({
+export const useSOSStore = create<SOSStore>((set, get) => ({
   isActive: false,
+  countdown: 5, // Default countdown in seconds
+  location: null,
   activatedAt: null,
-  currentLocation: null,
-  isLoading: false,
-  error: null,
+  notifiedContacts: [],
   
-  activateSOS: async () => {
-    set({ isLoading: true, error: null });
-    
+  initiateSOS: async () => {
     try {
-      // Get contacts and settings
-      const contacts = useContactsStore.getState().contacts;
+      // Get settings
       const { settings } = useSettingsStore.getState();
       
-      // Simulate getting current location
-      const mockLocation = {
-        latitude: 28.6139,
-        longitude: 77.2090,
-        address: 'Connaught Place, New Delhi, India'
-      };
+      // Set countdown from settings
+      set({ countdown: settings.sosCountdownDuration });
       
-      // Simulate sending alerts to contacts
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Request location permissions
+      const { status } = await Location.requestForegroundPermissionsAsync();
       
-      // Log actions that would happen in a real app
-      console.log('SOS Activated!');
-      console.log('Location:', mockLocation);
-      console.log('Alerting contacts:', contacts);
-      
-      if (settings.enableSiren && Platform.OS !== 'web') {
-        console.log('Siren activated!');
-        // In a real app, we would play a loud siren sound here
+      if (status !== "granted") {
+        console.error("Location permission denied");
+        return;
       }
       
-      if (settings.autoCallPrimary) {
-        const primaryContact = contacts.find(c => c.isPrimary);
-        if (primaryContact) {
-          console.log('Auto-calling primary contact:', primaryContact.fullName);
-          // In a real app, we would initiate a call here
-        }
+      // Get current location
+      const location = await Location.getCurrentPositionAsync({});
+      
+      // Trigger haptic feedback if enabled and on a supported platform
+      if (settings.vibrationEnabled && Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       }
       
-      set({ 
+      // Activate SOS
+      set({
         isActive: true,
-        activatedAt: new Date().toISOString(),
-        currentLocation: mockLocation,
-        isLoading: false
+        location: {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude
+        },
+        activatedAt: new Date(),
       });
+      
+      // Start location updates
+      get().updateLocation();
+      
+      // Get trusted contacts
+      const trustedContacts = useContactsStore.getState().getTrustedContacts();
+      
+      // In a real app, this would send notifications to trusted contacts
+      set({
+        notifiedContacts: trustedContacts.map(contact => contact.id)
+      });
+      
     } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : "Failed to activate SOS",
-        isLoading: false
-      });
+      console.error("Error initiating SOS:", error);
     }
   },
   
-  deactivateSOS: async () => {
-    set({ isLoading: true, error: null });
+  cancelSOS: () => {
+    set({
+      isActive: false,
+      notifiedContacts: []
+    });
+  },
+  
+  updateLocation: async () => {
+    if (!get().isActive) return;
     
     try {
-      // Simulate API call to notify contacts that user is safe
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const location = await Location.getCurrentPositionAsync({});
       
-      console.log('SOS Deactivated - User is safe');
-      
-      set({ 
-        isActive: false,
-        activatedAt: null,
-        isLoading: false
+      set({
+        location: {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude
+        }
       });
+      
+      // Schedule next update if SOS is still active
+      if (get().isActive) {
+        setTimeout(() => {
+          get().updateLocation();
+        }, 10000); // Update every 10 seconds
+      }
     } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : "Failed to deactivate SOS",
-        isLoading: false
-      });
+      console.error("Error updating location:", error);
     }
   },
   
-  updateLocation: (location) => {
-    set({ currentLocation: location });
+  decrementCountdown: () => {
+    const currentCountdown = get().countdown;
+    
+    if (currentCountdown > 0) {
+      set({ countdown: currentCountdown - 1 });
+    }
+  },
+  
+  resetCountdown: () => {
+    const { settings } = useSettingsStore.getState();
+    set({ countdown: settings.sosCountdownDuration });
   }
 }));

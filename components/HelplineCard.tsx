@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking, Platform } from 'react-native';
-import { Phone } from 'lucide-react-native';
-import { colors } from '@/constants/Colors';
-import { Helpline } from '@/types';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking } from "react-native";
+import { Phone } from "lucide-react-native";
+import Colors from "@/constants/colors";
+import { Helpline } from "@/constants/helplines";
 
 interface HelplineCardProps {
   helpline: Helpline;
@@ -10,88 +10,120 @@ interface HelplineCardProps {
 
 export const HelplineCard: React.FC<HelplineCardProps> = ({ helpline }) => {
   const handleCall = async () => {
-    const phoneNumber = helpline.number.replace(/\s/g, '');
-    const phoneUrl = Platform.OS === 'android' 
-      ? `tel:${phoneNumber}` 
-      : `telprompt:${phoneNumber}`;
+    if (Platform.OS === "web") {
+      alert(`In a real app, this would call ${helpline.number}`);
+      return;
+    }
     
-    try {
-      if (Platform.OS !== 'web') {
-        await Linking.openURL(phoneUrl);
-      } else {
-        console.log('Phone calls are not supported in web');
-        // In a real app, we would show a toast or alert here
-      }
-    } catch (error) {
-      console.error('Failed to make call', error);
+    const url = `tel:${helpline.number}`;
+    const canOpen = await Linking.canOpenURL(url);
+    
+    if (canOpen) {
+      await Linking.openURL(url);
+    } else {
+      alert(`Unable to call ${helpline.number}`);
     }
   };
-
+  
+  const getCategoryColor = () => {
+    switch (helpline.category) {
+      case "emergency":
+        return Colors.danger;
+      case "women":
+        return Colors.primary;
+      case "health":
+        return Colors.success;
+      default:
+        return Colors.info;
+    }
+  };
+  
   return (
     <View style={styles.container}>
-      <View style={styles.infoContainer}>
-        <Text style={styles.service}>{helpline.service}</Text>
-        <Text style={styles.number}>{helpline.number}</Text>
-        <Text style={styles.description}>{helpline.description}</Text>
-      </View>
+      <View style={[styles.categoryIndicator, { backgroundColor: getCategoryColor() }]} />
       
-      <TouchableOpacity 
-        style={styles.callButton}
-        onPress={handleCall}
-      >
-        <Phone size={20} color={colors.white} />
-        <Text style={styles.callText}>Call</Text>
-      </TouchableOpacity>
+      <View style={styles.content}>
+        <Text style={styles.name}>{helpline.name}</Text>
+        <Text style={styles.description}>{helpline.description}</Text>
+        
+        <View style={styles.footer}>
+          <View style={styles.categoryContainer}>
+            <Text style={[styles.categoryText, { color: getCategoryColor() }]}>
+              {helpline.category}
+            </Text>
+          </View>
+          
+          <TouchableOpacity 
+            style={[styles.callButton, { backgroundColor: getCategoryColor() }]}
+            onPress={handleCall}
+          >
+            <Phone size={16} color={Colors.white} />
+            <Text style={styles.callButtonText}>{helpline.number}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.white,
+    flexDirection: "row",
+    backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: colors.black,
+    overflow: "hidden",
+    marginBottom: 16,
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  infoContainer: {
+  categoryIndicator: {
+    width: 6,
+  },
+  content: {
     flex: 1,
+    padding: 16,
   },
-  service: {
+  name: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.textDark,
-    marginBottom: 4,
-  },
-  number: {
-    fontSize: 16,
-    color: colors.primary,
-    fontWeight: '500',
+    fontWeight: "600",
+    color: Colors.text,
     marginBottom: 4,
   },
   description: {
     fontSize: 14,
-    color: colors.textLight,
+    color: Colors.textSecondary,
+    marginBottom: 12,
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  categoryContainer: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.gray[100],
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: "500",
+    textTransform: "capitalize",
   },
   callButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: 8,
-    marginLeft: 16,
+    gap: 6,
   },
-  callText: {
-    color: colors.white,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
+  callButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.white,
+  }
 });

@@ -1,150 +1,143 @@
-import React from 'react';
+import React, { useState, useEffect } from "react";
 import { 
   TouchableOpacity, 
   Text, 
   StyleSheet, 
   Animated, 
   Easing,
-  View,
-  Platform
-} from 'react-native';
-import { AlertTriangle } from 'lucide-react-native';
-import { colors } from '@/constants/Colors';
+  Platform,
+  View
+} from "react-native";
+import { AlertTriangle } from "lucide-react-native";
+import Colors from "@/constants/colors";
+import * as Haptics from "expo-haptics";
 
 interface SOSButtonProps {
   onPress: () => void;
-  isActive?: boolean;
-  isLoading?: boolean;
-  size?: 'small' | 'medium' | 'large';
+  size?: "normal" | "large";
+  label?: string;
 }
 
-export const SOSButton: React.FC<SOSButtonProps> = ({
-  onPress,
-  isActive = false,
-  isLoading = false,
-  size = 'large'
+export const SOSButton: React.FC<SOSButtonProps> = ({ 
+  onPress, 
+  size = "normal",
+  label = "SOS"
 }) => {
-  // Animation for pulsing effect
-  const pulseAnim = React.useRef(new Animated.Value(1)).current;
+  const [isPressed, setIsPressed] = useState(false);
+  const pulseAnim = new Animated.Value(1);
   
-  React.useEffect(() => {
-    if (isActive) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.2,
-            duration: 800,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: Platform.OS !== 'web',
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 800,
-            easing: Easing.in(Easing.ease),
-            useNativeDriver: Platform.OS !== 'web',
-          })
-        ])
-      ).start();
-    } else {
-      pulseAnim.setValue(1);
-    }
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 800,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: Platform.OS !== "web",
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: Platform.OS !== "web",
+        }),
+      ])
+    );
+    
+    pulse.start();
     
     return () => {
-      pulseAnim.stopAnimation();
+      pulse.stop();
     };
-  }, [isActive, pulseAnim]);
+  }, []);
   
-  // Get size dimensions
-  const getDimensions = () => {
-    switch (size) {
-      case 'small':
-        return { width: 80, height: 80, fontSize: 14, iconSize: 24 };
-      case 'medium':
-        return { width: 120, height: 120, fontSize: 18, iconSize: 32 };
-      case 'large':
-      default:
-        return { width: 160, height: 160, fontSize: 22, iconSize: 40 };
+  const handlePress = () => {
+    setIsPressed(true);
+    
+    // Trigger haptic feedback on supported platforms
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
+    
+    // Call the onPress handler
+    onPress();
+    
+    // Reset the pressed state after a delay
+    setTimeout(() => {
+      setIsPressed(false);
+    }, 200);
   };
   
-  const { width, height, fontSize, iconSize } = getDimensions();
+  const buttonSize = size === "large" ? styles.largeButton : styles.normalButton;
+  const textSize = size === "large" ? styles.largeText : styles.normalText;
   
-  // Animated styles
-  const animatedStyles = {
-    transform: [{ scale: pulseAnim }],
-  };
-  
-  return (
-    <View style={styles.container}>
-      <Animated.View style={[
-        styles.pulseContainer,
-        { width, height, borderRadius: width / 2 },
-        isActive && styles.activePulse,
-        animatedStyles
-      ]}>
-        <TouchableOpacity
-          style={[
-            styles.button,
-            { width, height, borderRadius: width / 2 },
-            isActive && styles.activeButton,
-            isLoading && styles.loadingButton
-          ]}
-          onPress={onPress}
-          activeOpacity={0.8}
-          disabled={isLoading}
-        >
-          <AlertTriangle size={iconSize} color={colors.white} />
-          <Text style={[styles.text, { fontSize }]}>
-            {isActive ? 'CANCEL' : 'SOS'}
-          </Text>
-        </TouchableOpacity>
-      </Animated.View>
-      
-      {isActive && (
-        <Text style={styles.activeText}>SOS Alert Active</Text>
-      )}
+  return Platform.OS !== "web" ? (
+    <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+      <TouchableOpacity
+        style={[
+          styles.button,
+          buttonSize,
+          isPressed && styles.buttonPressed,
+        ]}
+        onPress={handlePress}
+        activeOpacity={0.7}
+      >
+        <AlertTriangle size={size === "large" ? 32 : 24} color={Colors.white} />
+        <Text style={[styles.text, textSize]}>{label}</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  ) : (
+    // Fallback for web without animation
+    <View>
+      <TouchableOpacity
+        style={[
+          styles.button,
+          buttonSize,
+          isPressed && styles.buttonPressed,
+        ]}
+        onPress={handlePress}
+        activeOpacity={0.7}
+      >
+        <AlertTriangle size={size === "large" ? 32 : 24} color={Colors.white} />
+        <Text style={[styles.text, textSize]}>{label}</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pulseContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 59, 48, 0.2)',
-  },
-  activePulse: {
-    backgroundColor: 'rgba(255, 59, 48, 0.3)',
-  },
   button: {
-    backgroundColor: colors.danger,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.black,
+    backgroundColor: Colors.accent,
+    borderRadius: 100,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: 6,
     elevation: 8,
   },
-  activeButton: {
-    backgroundColor: colors.danger,
+  normalButton: {
+    width: 80,
+    height: 80,
   },
-  loadingButton: {
-    opacity: 0.7,
+  largeButton: {
+    width: 120,
+    height: 120,
+  },
+  buttonPressed: {
+    backgroundColor: "#E03060", // Darker shade when pressed
+    transform: [{ scale: 0.95 }],
   },
   text: {
-    color: colors.white,
-    fontWeight: 'bold',
-    marginTop: 8,
+    color: Colors.white,
+    fontWeight: "bold",
+    marginTop: 4,
   },
-  activeText: {
-    color: colors.danger,
-    fontWeight: 'bold',
+  normalText: {
     fontSize: 16,
-    marginTop: 16,
+  },
+  largeText: {
+    fontSize: 22,
   },
 });

@@ -1,236 +1,216 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Image,
   Alert,
   Platform,
-  ScrollView
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Camera, Video, Mic } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { colors } from '@/constants/Colors';
-import { Button } from '@/components/Button';
+  SafeAreaView
+} from "react-native";
+import { Camera, Video, Mic, FileText, Plus, Trash2 } from "lucide-react-native";
+import Colors from "@/constants/colors";
+import { Button } from "@/components/Button";
+import * as ImagePicker from "expo-image-picker";
+import { EvidenceItem } from "@/types";
 
 export default function EvidenceScreen() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
   
-  const requestPermission = async (type: 'camera' | 'audio') => {
-    if (Platform.OS === 'web') {
-      Alert.alert('Not Available', 'This feature is not available on web');
-      return false;
-    }
-    
+  const capturePhoto = async () => {
     try {
-      let status;
-      
-      if (type === 'camera') {
-        const result = await ImagePicker.requestCameraPermissionsAsync();
-        status = result.status;
-      } else {
-        // In a real app, we would request audio permissions here
-        status = 'granted'; // Mock for demo
-      }
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission Required',
-          `Please allow access to your ${type} to capture evidence.`
-        );
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error(`Error requesting ${type} permission:`, error);
-      return false;
-    }
-  };
-  
-  const handleTakePhoto = async () => {
-    if (Platform.OS === 'web') {
-      Alert.alert('Not Available', 'Camera is not available on web');
-      return;
-    }
-    
-    const hasPermission = await requestPermission('camera');
-    if (!hasPermission) return;
-    
-    try {
-      setIsLoading(true);
-      
-      const result = await ImagePicker.launchCameraAsync({
+      const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
         quality: 0.8,
+        allowsEditing: true,
       });
       
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        // In a real app, we would save the image and metadata
-        Alert.alert(
-          'Photo Captured',
-          'Your photo evidence has been saved securely and shared with your trusted contacts.'
-        );
+        const newItem: EvidenceItem = {
+          id: Date.now().toString(),
+          type: "photo",
+          uri: result.assets[0].uri,
+          timestamp: new Date(),
+          description: "Photo evidence"
+        };
+        
+        setEvidenceItems(prev => [newItem, ...prev]);
       }
     } catch (error) {
-      console.error('Error taking photo:', error);
-      Alert.alert('Error', 'Failed to capture photo. Please try again.');
-    } finally {
-      setIsLoading(false);
+      console.error("Error capturing photo:", error);
+      Alert.alert("Error", "Failed to capture photo");
     }
   };
   
-  const handleRecordVideo = async () => {
-    if (Platform.OS === 'web') {
-      Alert.alert('Not Available', 'Video recording is not available on web');
-      return;
-    }
-    
-    const hasPermission = await requestPermission('camera');
-    if (!hasPermission) return;
-    
+  const captureVideo = async () => {
     try {
-      setIsLoading(true);
-      
-      const result = await ImagePicker.launchCameraAsync({
+      const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-        allowsEditing: true,
         quality: 0.8,
-        videoMaxDuration: 60,
+        allowsEditing: true,
       });
       
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        // In a real app, we would save the video and metadata
-        Alert.alert(
-          'Video Recorded',
-          'Your video evidence has been saved securely and shared with your trusted contacts.'
-        );
+        const newItem: EvidenceItem = {
+          id: Date.now().toString(),
+          type: "video",
+          uri: result.assets[0].uri,
+          timestamp: new Date(),
+          description: "Video evidence"
+        };
+        
+        setEvidenceItems(prev => [newItem, ...prev]);
       }
     } catch (error) {
-      console.error('Error recording video:', error);
-      Alert.alert('Error', 'Failed to record video. Please try again.');
-    } finally {
-      setIsLoading(false);
+      console.error("Error capturing video:", error);
+      Alert.alert("Error", "Failed to capture video");
     }
   };
   
-  const handleRecordAudio = async () => {
-    if (Platform.OS === 'web') {
-      Alert.alert('Not Available', 'Audio recording is not available on web');
-      return;
+  const recordAudio = () => {
+    // In a real app, this would use expo-av to record audio
+    Alert.alert("Record Audio", "Audio recording would be implemented here");
+  };
+  
+  const addNote = () => {
+    // In a real app, this would open a text input modal
+    Alert.alert("Add Note", "Note taking would be implemented here");
+  };
+  
+  const deleteItem = (id: string) => {
+    if (Platform.OS === "web") {
+      if (confirm("Are you sure you want to delete this evidence?")) {
+        setEvidenceItems(prev => prev.filter(item => item.id !== id));
+      }
+    } else {
+      Alert.alert(
+        "Delete Evidence",
+        "Are you sure you want to delete this evidence?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { 
+            text: "Delete", 
+            style: "destructive", 
+            onPress: () => setEvidenceItems(prev => prev.filter(item => item.id !== id)) 
+          }
+        ]
+      );
     }
+  };
+  
+  const renderEvidenceItem = ({ item }: { item: EvidenceItem }) => {
+    const formatDate = (date: Date) => {
+      return date.toLocaleString();
+    };
     
-    const hasPermission = await requestPermission('audio');
-    if (!hasPermission) return;
-    
-    try {
-      setIsLoading(true);
-      
-      // In a real app, we would use expo-av to record audio
-      // For demo, we'll just simulate recording
-      
-      setTimeout(() => {
-        Alert.alert(
-          'Audio Recorded',
-          'Your audio evidence has been saved securely and shared with your trusted contacts.'
-        );
-        setIsLoading(false);
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Error recording audio:', error);
-      Alert.alert('Error', 'Failed to record audio. Please try again.');
-      setIsLoading(false);
-    }
+    return (
+      <View style={styles.evidenceItem}>
+        {item.type === "photo" && (
+          <Image source={{ uri: item.uri }} style={styles.evidenceImage} />
+        )}
+        
+        {item.type === "video" && (
+          <View style={styles.evidenceVideo}>
+            <Video size={32} color={Colors.white} />
+          </View>
+        )}
+        
+        {item.type === "audio" && (
+          <View style={styles.evidenceAudio}>
+            <Mic size={32} color={Colors.white} />
+          </View>
+        )}
+        
+        {item.type === "note" && (
+          <View style={styles.evidenceNote}>
+            <FileText size={32} color={Colors.white} />
+          </View>
+        )}
+        
+        <View style={styles.evidenceInfo}>
+          <Text style={styles.evidenceType}>{item.type.toUpperCase()}</Text>
+          <Text style={styles.evidenceTimestamp}>{formatDate(item.timestamp)}</Text>
+          <Text style={styles.evidenceDescription}>{item.description}</Text>
+        </View>
+        
+        <TouchableOpacity 
+          style={styles.deleteButton}
+          onPress={() => deleteItem(item.id)}
+        >
+          <Trash2 size={20} color={Colors.danger} />
+        </TouchableOpacity>
+      </View>
+    );
   };
   
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>Record Incident</Text>
-          <Text style={styles.subtitle}>
-            Record and save evidence safely.
-          </Text>
-        </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>
+          Capture and store evidence securely. All evidence is stored locally on your device.
+        </Text>
+      </View>
+      
+      <View style={styles.captureOptions}>
+        <TouchableOpacity 
+          style={[styles.captureButton, { backgroundColor: Colors.primary }]}
+          onPress={capturePhoto}
+        >
+          <Camera size={24} color={Colors.white} />
+          <Text style={styles.captureButtonText}>Photo</Text>
+        </TouchableOpacity>
         
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoText}>
-            Your evidence will be auto-shared with your trusted contacts and stored securely.
-          </Text>
-        </View>
+        <TouchableOpacity 
+          style={[styles.captureButton, { backgroundColor: Colors.secondary }]}
+          onPress={captureVideo}
+        >
+          <Video size={24} color={Colors.white} />
+          <Text style={styles.captureButtonText}>Video</Text>
+        </TouchableOpacity>
         
-        <View style={styles.optionsContainer}>
-          <TouchableOpacity 
-            style={styles.optionCard}
-            onPress={handleTakePhoto}
-            disabled={isLoading}
-          >
-            <View style={[styles.optionIcon, { backgroundColor: colors.primary }]}>
-              <Camera size={32} color={colors.white} />
-            </View>
-            <Text style={styles.optionTitle}>Take Photo</Text>
-            <Text style={styles.optionDescription}>
-              Capture photo evidence of your surroundings
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.optionCard}
-            onPress={handleRecordVideo}
-            disabled={isLoading}
-          >
-            <View style={[styles.optionIcon, { backgroundColor: colors.secondary }]}>
-              <Video size={32} color={colors.white} />
-            </View>
-            <Text style={styles.optionTitle}>Record Video</Text>
-            <Text style={styles.optionDescription}>
-              Record video evidence with sound
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.optionCard}
-            onPress={handleRecordAudio}
-            disabled={isLoading}
-          >
-            <View style={[styles.optionIcon, { backgroundColor: colors.info }]}>
-              <Mic size={32} color={colors.white} />
-            </View>
-            <Text style={styles.optionTitle}>Record Audio</Text>
-            <Text style={styles.optionDescription}>
-              Discreetly record audio of the situation
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity 
+          style={[styles.captureButton, { backgroundColor: Colors.info }]}
+          onPress={recordAudio}
+        >
+          <Mic size={24} color={Colors.white} />
+          <Text style={styles.captureButtonText}>Audio</Text>
+        </TouchableOpacity>
         
-        <View style={styles.notesContainer}>
-          <Text style={styles.notesTitle}>Important Notes:</Text>
-          <Text style={styles.notesText}>
-            • Evidence is automatically timestamped and geotagged
-          </Text>
-          <Text style={styles.notesText}>
-            • All recordings are encrypted for your privacy
-          </Text>
-          <Text style={styles.notesText}>
-            • Your trusted contacts will receive a notification with access to your evidence
-          </Text>
-        </View>
+        <TouchableOpacity 
+          style={[styles.captureButton, { backgroundColor: Colors.success }]}
+          onPress={addNote}
+        >
+          <FileText size={24} color={Colors.white} />
+          <Text style={styles.captureButtonText}>Note</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.evidenceContainer}>
+        <Text style={styles.sectionTitle}>Saved Evidence</Text>
         
-        {Platform.OS === 'web' && (
-          <View style={styles.webNotice}>
-            <Text style={styles.webNoticeText}>
-              Note: Camera and recording features are only available on mobile devices.
+        {evidenceItems.length > 0 ? (
+          <FlatList
+            data={evidenceItems}
+            keyExtractor={item => item.id}
+            renderItem={renderEvidenceItem}
+            contentContainerStyle={styles.evidenceList}
+          />
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>
+              No evidence captured yet. Use the buttons above to capture evidence.
             </Text>
+            <Button
+              title="Capture Evidence"
+              leftIcon={<Plus size={20} color={Colors.white} />}
+              onPress={capturePhoto}
+              style={styles.captureEvidenceButton}
+            />
           </View>
         )}
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -238,98 +218,130 @@ export default function EvidenceScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+    backgroundColor: Colors.gray[50],
   },
   header: {
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.textDark,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textLight,
-  },
-  infoContainer: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    backgroundColor: Colors.tertiary,
     padding: 16,
-    marginBottom: 24,
   },
-  infoText: {
+  headerText: {
     fontSize: 14,
-    color: colors.textDark,
-    lineHeight: 20,
+    color: Colors.primary,
+    textAlign: "center",
   },
-  optionsContainer: {
-    marginBottom: 24,
+  captureOptions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 16,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[200],
   },
-  optionCard: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: colors.black,
+  captureButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  optionIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
+  captureButtonText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 4,
   },
-  optionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textDark,
-    marginBottom: 8,
-  },
-  optionDescription: {
-    fontSize: 14,
-    color: colors.textLight,
-    lineHeight: 20,
-  },
-  notesContainer: {
-    backgroundColor: 'rgba(255, 107, 139, 0.1)',
-    borderRadius: 12,
+  evidenceContainer: {
+    flex: 1,
     padding: 16,
   },
-  notesTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textDark,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: Colors.text,
     marginBottom: 12,
   },
-  notesText: {
-    fontSize: 14,
-    color: colors.textDark,
-    marginBottom: 8,
-    lineHeight: 20,
+  evidenceList: {
+    paddingBottom: 16,
   },
-  webNotice: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: colors.warning + '20',
+  evidenceItem: {
+    flexDirection: "row",
+    backgroundColor: Colors.white,
     borderRadius: 12,
+    overflow: "hidden",
+    marginBottom: 12,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  webNoticeText: {
+  evidenceImage: {
+    width: 80,
+    height: 80,
+  },
+  evidenceVideo: {
+    width: 80,
+    height: 80,
+    backgroundColor: Colors.secondary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  evidenceAudio: {
+    width: 80,
+    height: 80,
+    backgroundColor: Colors.info,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  evidenceNote: {
+    width: 80,
+    height: 80,
+    backgroundColor: Colors.success,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  evidenceInfo: {
+    flex: 1,
+    padding: 12,
+    justifyContent: "center",
+  },
+  evidenceType: {
     fontSize: 14,
-    color: colors.textDark,
-    textAlign: 'center',
+    fontWeight: "bold",
+    color: Colors.primary,
+    marginBottom: 4,
   },
+  evidenceTimestamp: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  evidenceDescription: {
+    fontSize: 14,
+    color: Colors.text,
+  },
+  deleteButton: {
+    padding: 12,
+    justifyContent: "center",
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  captureEvidenceButton: {
+    width: "100%",
+  }
 });

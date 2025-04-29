@@ -1,190 +1,141 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { EmergencyContact } from '@/types';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Contact } from "@/types";
+import { useAuthStore } from "./auth-store";
 
 interface ContactsState {
-  contacts: EmergencyContact[];
+  contacts: Contact[];
   isLoading: boolean;
   error: string | null;
-  addContact: (contact: Omit<EmergencyContact, 'id'>) => Promise<void>;
-  updateContact: (id: string, contact: Partial<EmergencyContact>) => Promise<void>;
-  removeContact: (id: string) => Promise<void>;
-  setPrimaryContact: (id: string) => Promise<void>;
+}
+
+interface ContactsStore extends ContactsState {
+  addContact: (contact: Omit<Contact, "id">) => void;
+  updateContact: (id: string, updates: Partial<Contact>) => void;
+  deleteContact: (id: string) => void;
+  setTrusted: (id: string, isTrusted: boolean) => void;
+  getContactById: (id: string) => Contact | undefined;
+  getTrustedContacts: () => Contact[];
   clearError: () => void;
 }
 
-// Mock contacts for demo
-const mockContacts: EmergencyContact[] = [
-  {
-    id: '1',
-    fullName: 'Anjali Sharma',
-    phoneNumber: '+91 9876543210',
-    relationship: 'Sister',
-    isPrimary: true
-  },
-  {
-    id: '2',
-    fullName: 'Ravi Birajdar',
-    phoneNumber: '+91 9876543211',
-    relationship: 'Brother',
-    isPrimary: false
-  },
-  {
-    id: '3',
-    fullName: 'Meena Devi',
-    phoneNumber: '+91 9876543212',
-    relationship: 'Mother',
-    isPrimary: false
-  }
-];
-
-export const useContactsStore = create<ContactsState>()(
+export const useContactsStore = create<ContactsStore>()(
   persist(
     (set, get) => ({
-      contacts: mockContacts,
+      contacts: [],
       isLoading: false,
       error: null,
-      
-      addContact: async (contactData) => {
-        set({ isLoading: true, error: null });
+
+      addContact: (contactData) => {
+        const newContact: Contact = {
+          ...contactData,
+          id: Date.now().toString(),
+        };
         
-        try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          const newContact: EmergencyContact = {
-            id: Math.random().toString(36).substring(2, 9),
-            ...contactData
-          };
-          
-          // If this is the first contact or marked as primary, ensure it's the only primary
-          if (newContact.isPrimary) {
-            const updatedContacts = get().contacts.map(c => ({
-              ...c,
-              isPrimary: false
-            }));
-            
-            set({ 
-              contacts: [...updatedContacts, newContact],
-              isLoading: false
-            });
-          } else {
-            set({ 
-              contacts: [...get().contacts, newContact],
-              isLoading: false
-            });
-          }
-        } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : "An error occurred",
-            isLoading: false
+        set(state => ({
+          contacts: [...state.contacts, newContact],
+          error: null
+        }));
+        
+        // Update user's emergency contacts in auth store
+        const authStore = useAuthStore.getState();
+        if (authStore.user) {
+          authStore.updateProfile({
+            emergencyContacts: [...get().contacts]
           });
         }
       },
       
-      updateContact: async (id, contactData) => {
-        set({ isLoading: true, error: null });
+      updateContact: (id, updates) => {
+        set(state => ({
+          contacts: state.contacts.map(contact => 
+            contact.id === id ? { ...contact, ...updates } : contact
+          ),
+          error: null
+        }));
         
-        try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          const currentContacts = get().contacts;
-          const contactIndex = currentContacts.findIndex(c => c.id === id);
-          
-          if (contactIndex === -1) {
-            throw new Error("Contact not found");
-          }
-          
-          // Handle primary contact logic
-          if (contactData.isPrimary) {
-            const updatedContacts = currentContacts.map(c => ({
-              ...c,
-              isPrimary: c.id === id
-            }));
-            
-            set({ 
-              contacts: updatedContacts,
-              isLoading: false
-            });
-          } else {
-            const updatedContacts = [...currentContacts];
-            updatedContacts[contactIndex] = {
-              ...updatedContacts[contactIndex],
-              ...contactData
-            };
-            
-            set({ 
-              contacts: updatedContacts,
-              isLoading: false
-            });
-          }
-        } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : "An error occurred",
-            isLoading: false
+        // Update user's emergency contacts in auth store
+        const authStore = useAuthStore.getState();
+        if (authStore.user) {
+          authStore.updateProfile({
+            emergencyContacts: get().contacts
           });
         }
       },
       
-      removeContact: async (id) => {
-        set({ isLoading: true, error: null });
+      deleteContact: (id) => {
+        set(state => ({
+          contacts: state.contacts.filter(contact => contact.id !== id),
+          error: null
+        }));
         
-        try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          const filteredContacts = get().contacts.filter(c => c.id !== id);
-          
-          // If we removed the primary contact and have other contacts, set the first one as primary
-          const removedPrimary = !filteredContacts.some(c => c.isPrimary) && filteredContacts.length > 0;
-          
-          if (removedPrimary) {
-            filteredContacts[0].isPrimary = true;
-          }
-          
-          set({ 
-            contacts: filteredContacts,
-            isLoading: false
-          });
-        } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : "An error occurred",
-            isLoading: false
+        // Update user's emergency contacts in auth store
+        const authStore = useAuthStore.getState();
+        if (authStore.user) {
+          authStore.updateProfile({
+            emergencyContacts: get().contacts.filter(contact => contact.id !== id)
           });
         }
       },
       
-      setPrimaryContact: async (id) => {
-        set({ isLoading: true, error: null });
-        
-        try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          const updatedContacts = get().contacts.map(contact => ({
-            ...contact,
-            isPrimary: contact.id === id
-          }));
-          
-          set({ 
-            contacts: updatedContacts,
-            isLoading: false
-          });
-        } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : "An error occurred",
-            isLoading: false
-          });
-        }
+      setTrusted: (id, isTrusted) => {
+        set(state => ({
+          contacts: state.contacts.map(contact => 
+            contact.id === id ? { ...contact, isTrusted } : contact
+          ),
+          error: null
+        }));
       },
       
-      clearError: () => set({ error: null })
+      getContactById: (id) => {
+        return get().contacts.find(contact => contact.id === id);
+      },
+      
+      getTrustedContacts: () => {
+        return get().contacts.filter(contact => contact.isTrusted);
+      },
+      
+      clearError: () => {
+        set({ error: null });
+      }
     }),
     {
-      name: 'contacts-storage',
-      storage: createJSONStorage(() => AsyncStorage)
+      name: "contacts-storage",
+      storage: createJSONStorage(() => AsyncStorage),
     }
   )
 );
+
+// Add some mock contacts for development
+if (__DEV__) {
+  // Only add mock data if no contacts exist
+  const currentContacts = useContactsStore.getState().contacts;
+  
+  if (currentContacts.length === 0) {
+    const mockContacts = [
+      {
+        name: "Mom",
+        phoneNumber: "+91 9876543210",
+        relationship: "Family",
+        isTrusted: true
+      },
+      {
+        name: "Dad",
+        phoneNumber: "+91 9876543211",
+        relationship: "Family",
+        isTrusted: true
+      },
+      {
+        name: "Neha",
+        phoneNumber: "+91 9876543212",
+        relationship: "Friend",
+        isTrusted: false
+      }
+    ];
+    
+    mockContacts.forEach(contact => {
+      useContactsStore.getState().addContact(contact);
+    });
+  }
+}

@@ -1,27 +1,28 @@
-import { Stack } from 'expo-router';
-import { colors } from '@/constants/Colors';
+import { Stack } from "expo-router";
+import Colors from "@/constants/colors";
 
 export default function HomeLayout() {
   return (
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: colors.white,
+          backgroundColor: Colors.white,
         },
-        headerTintColor: colors.primary,
         headerTitleStyle: {
-          fontWeight: '600',
+          color: Colors.text,
+          fontWeight: "600",
         },
+        headerShadowVisible: false,
       }}
     >
       <Stack.Screen
         name="index"
         options={{
-          title: 'SheSafe',
+          title: "SheSafe",
           headerTitleStyle: {
-            color: colors.primary,
-            fontWeight: 'bold',
-            fontSize: 20,
+            color: Colors.primary,
+            fontWeight: "bold",
+            fontSize: 22,
           },
         }}
       />

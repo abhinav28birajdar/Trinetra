@@ -1,91 +1,73 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User } from '@/types';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { User, AuthState } from "@/types";
 
-interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
+interface AuthStore extends AuthState {
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (userData: Omit<User, 'id'> & { password: string }) => Promise<void>;
+  signUp: (name: string, email: string, password: string, phoneNumber: string) => Promise<void>;
   signOut: () => void;
-  updateProfile: (userData: Partial<User>) => Promise<void>;
-  clearError: () => void;
+  updateProfile: (userData: Partial<User>) => void;
+  resetError: () => void;
 }
 
-// Mock user for demo purposes
-const mockUser: User = {
-  id: '1',
-  fullName: 'Anjali Sharma',
-  email: 'anjali@example.com',
-  phoneNumber: '+91 9876543210',
-  homeAddress: '123 Safety Street, Secure City',
-  profilePicture: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80'
-};
-
-export const useAuthStore = create<AuthState>()(
+export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
       user: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
-      
+
       signIn: async (email, password) => {
         set({ isLoading: true, error: null });
         
         try {
-          // Simulate API call
+          // In a real app, this would be an API call
+          // Simulating API delay
           await new Promise(resolve => setTimeout(resolve, 1000));
           
-          // For demo, accept any email with password "password"
-          if (password !== "password") {
-            throw new Error("Invalid credentials. Please try again.");
+          // Mock authentication for demo
+          if (email === "demo@example.com" && password === "password") {
+            const user: User = {
+              id: "1",
+              name: "Priya Sharma",
+              email: "demo@example.com",
+              phoneNumber: "+91 9876543210",
+              address: "123 Main Street, Mumbai",
+              emergencyContacts: [],
+              profileImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop"
+            };
+            
+            set({ user, isAuthenticated: true, isLoading: false });
+          } else {
+            set({ error: "Invalid email or password", isLoading: false });
           }
-          
-          // Use mock user for demo
-          set({ 
-            user: mockUser,
-            isAuthenticated: true,
-            isLoading: false
-          });
         } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : "An error occurred",
-            isLoading: false
-          });
+          set({ error: "An error occurred during sign in", isLoading: false });
         }
       },
       
-      signUp: async (userData) => {
+      signUp: async (name, email, password, phoneNumber) => {
         set({ isLoading: true, error: null });
         
         try {
-          // Simulate API call
+          // In a real app, this would be an API call
+          // Simulating API delay
           await new Promise(resolve => setTimeout(resolve, 1000));
           
-          // Create new user with random ID
-          const newUser: User = {
-            id: Math.random().toString(36).substring(2, 9),
-            fullName: userData.fullName,
-            email: userData.email,
-            phoneNumber: userData.phoneNumber,
-            homeAddress: '',
-            profilePicture: ''
+          // Mock user creation for demo
+          const user: User = {
+            id: Date.now().toString(),
+            name,
+            email,
+            phoneNumber,
+            emergencyContacts: []
           };
           
-          set({ 
-            user: newUser,
-            isAuthenticated: true,
-            isLoading: false
-          });
+          set({ user, isAuthenticated: true, isLoading: false });
         } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : "An error occurred",
-            isLoading: false
-          });
+          set({ error: "An error occurred during sign up", isLoading: false });
         }
       },
       
@@ -93,36 +75,20 @@ export const useAuthStore = create<AuthState>()(
         set({ user: null, isAuthenticated: false });
       },
       
-      updateProfile: async (userData) => {
-        set({ isLoading: true, error: null });
-        
-        try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          const currentUser = get().user;
-          if (!currentUser) {
-            throw new Error("User not found");
-          }
-          
-          const updatedUser = { ...currentUser, ...userData };
-          set({ 
-            user: updatedUser,
-            isLoading: false
-          });
-        } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : "An error occurred",
-            isLoading: false
-          });
+      updateProfile: (userData) => {
+        const currentUser = get().user;
+        if (currentUser) {
+          set({ user: { ...currentUser, ...userData } });
         }
       },
       
-      clearError: () => set({ error: null })
+      resetError: () => {
+        set({ error: null });
+      }
     }),
     {
-      name: 'auth-storage',
-      storage: createJSONStorage(() => AsyncStorage)
+      name: "auth-storage",
+      storage: createJSONStorage(() => AsyncStorage),
     }
   )
 );

@@ -1,177 +1,165 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
-  Alert,
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
   Linking,
   Platform,
-  TextInput
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Plus, UserPlus, Search, Star } from 'lucide-react-native';
-import { colors } from '@/constants/Colors';
-import { ContactCard } from '@/components/ContactCard';
-import { Button } from '@/components/Button';
-import { useContactsStore } from '@/store/contacts-store';
-import { EmergencyContact } from '@/types';
+  Alert,
+  SafeAreaView
+} from "react-native";
+import { router } from "expo-router";
+import { Plus } from "lucide-react-native";
+import { useContactsStore } from "@/store/contacts-store";
+import { ContactCard } from "@/components/ContactCard";
+import { Button } from "@/components/Button";
+import Colors from "@/constants/colors";
+import { Contact } from "@/types";
 
 export default function ContactsScreen() {
-  const router = useRouter();
-  const { contacts, removeContact, setPrimaryContact, isLoading } = useContactsStore();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
+  const { contacts, deleteContact, setTrusted } = useContactsStore();
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   
-  const handleAddContact = () => {
-    router.push('/contacts/add');
-  };
+  const trustedContacts = contacts.filter(contact => contact.isTrusted);
+  const otherContacts = contacts.filter(contact => !contact.isTrusted);
   
-  const handleCall = async (phoneNumber: string) => {
-    try {
-      if (Platform.OS !== 'web') {
-        await Linking.openURL(`tel:${phoneNumber}`);
-      } else {
-        console.log('Phone calls are not supported in web');
-        Alert.alert('Phone Call', `In a real device, this would call ${phoneNumber}`);
-      }
-    } catch (error) {
-      console.error('Failed to make call', error);
+  const handleCallContact = async (phoneNumber: string) => {
+    if (Platform.OS === "web") {
+      alert(`In a real app, this would call ${phoneNumber}`);
+      return;
+    }
+    
+    const url = `tel:${phoneNumber}`;
+    const canOpen = await Linking.canOpenURL(url);
+    
+    if (canOpen) {
+      await Linking.openURL(url);
+    } else {
+      alert(`Unable to call ${phoneNumber}`);
     }
   };
   
-  const handleDelete = (id: string) => {
-    if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to remove this contact?')) {
-        removeContact(id);
-        setRefreshKey(prev => prev + 1);
+  const handleEditContact = (contact: Contact) => {
+    setSelectedContact(contact);
+    router.push({
+      pathname: "/contacts/add",
+      params: { id: contact.id }
+    });
+  };
+  
+  const handleDeleteContact = (id: string) => {
+    if (Platform.OS === "web") {
+      if (confirm("Are you sure you want to delete this contact?")) {
+        deleteContact(id);
       }
     } else {
       Alert.alert(
-        'Remove Contact',
-        'Are you sure you want to remove this contact?',
+        "Delete Contact",
+        "Are you sure you want to delete this contact?",
         [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Remove', 
-            style: 'destructive',
-            onPress: () => {
-              removeContact(id);
-              setRefreshKey(prev => prev + 1);
-            }
-          }
+          { text: "Cancel", style: "cancel" },
+          { text: "Delete", style: "destructive", onPress: () => deleteContact(id) }
         ]
       );
     }
   };
   
-  const handleSetPrimary = (id: string) => {
-    setPrimaryContact(id);
-    setRefreshKey(prev => prev + 1);
+  const handleToggleTrusted = (id: string, isTrusted: boolean) => {
+    setTrusted(id, isTrusted);
   };
-
-  // Filter contacts based on search query
-  const filteredContacts = contacts.filter(contact => 
-    contact.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.relationship.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Separate primary contacts
-  const primaryContacts = filteredContacts.filter(contact => contact.isPrimary);
-  const otherContacts = filteredContacts.filter(contact => !contact.isPrimary);
-  
-  // Combine with primary contacts first
-  const sortedContacts = [...primaryContacts, ...otherContacts];
   
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <UserPlus size={60} color={colors.primary} style={styles.emptyIcon} />
-      <Text style={styles.emptyTitle}>No Emergency Contacts</Text>
-      <Text style={styles.emptyText}>
-        Add trusted contacts who will be notified in case of an emergency.
+      <Text style={styles.emptyTitle}>No Contacts Added</Text>
+      <Text style={styles.emptyDescription}>
+        Add emergency contacts to quickly reach them during emergencies.
       </Text>
       <Button
-        title="Add Emergency Contact"
-        onPress={handleAddContact}
-        style={styles.addButton}
+        title="Add Your First Contact"
+        leftIcon={<Plus size={20} color={Colors.white} />}
+        onPress={() => router.push("/contacts/add")}
+        style={styles.addFirstButton}
       />
-    </View>
-  );
-  
-  const renderContact = ({ item }: { item: EmergencyContact }) => (
-    <ContactCard
-      contact={item}
-      onCall={handleCall}
-      onDelete={handleDelete}
-      onSetPrimary={handleSetPrimary}
-    />
-  );
-
-  const renderSectionHeader = (title: string) => (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionHeaderText}>{title}</Text>
     </View>
   );
   
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Emergency Contacts</Text>
-        <Text style={styles.subtitle}>
-          These people will be contacted in emergencies.
-        </Text>
-      </View>
-
-      <View style={styles.searchContainer}>
-        <Search size={20} color={colors.textLight} style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search contacts..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor={colors.textLight}
+    <SafeAreaView style={styles.container}>
+      {contacts.length > 0 ? (
+        <FlatList
+          data={[]}
+          renderItem={null}
+          ListHeaderComponent={
+            <>
+              <View style={styles.header}>
+                <Text style={styles.headerText}>
+                  Add trusted contacts who can help you in emergencies.
+                </Text>
+              </View>
+              
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Trusted Contacts</Text>
+                
+                {trustedContacts.length > 0 ? (
+                  trustedContacts.map(contact => (
+                    <ContactCard
+                      key={contact.id}
+                      contact={contact}
+                      onCall={handleCallContact}
+                      onEdit={handleEditContact}
+                      onDelete={handleDeleteContact}
+                      onToggleTrusted={handleToggleTrusted}
+                    />
+                  ))
+                ) : (
+                  <View style={styles.emptySection}>
+                    <Text style={styles.emptyText}>
+                      No trusted contacts yet. Mark contacts as trusted for quick access during emergencies.
+                    </Text>
+                  </View>
+                )}
+              </View>
+              
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Other Contacts</Text>
+                
+                {otherContacts.length > 0 ? (
+                  otherContacts.map(contact => (
+                    <ContactCard
+                      key={contact.id}
+                      contact={contact}
+                      onCall={handleCallContact}
+                      onEdit={handleEditContact}
+                      onDelete={handleDeleteContact}
+                      onToggleTrusted={handleToggleTrusted}
+                    />
+                  ))
+                ) : (
+                  <View style={styles.emptySection}>
+                    <Text style={styles.emptyText}>
+                      {contacts.length > 0 
+                        ? "All your contacts are marked as trusted."
+                        : "No contacts added yet."}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </>
+          }
+          ListFooterComponent={<View style={{ height: 80 }} />}
         />
-      </View>
-
-      {primaryContacts.length > 0 && (
-        <View style={styles.favoriteContactsContainer}>
-          <View style={styles.favoriteHeader}>
-            <Star size={16} color={colors.primary} />
-            <Text style={styles.favoriteHeaderText}>Favorite Contacts</Text>
-          </View>
-          {primaryContacts.map(contact => (
-            <ContactCard
-              key={contact.id}
-              contact={contact}
-              onCall={handleCall}
-              onDelete={handleDelete}
-              onSetPrimary={handleSetPrimary}
-            />
-          ))}
-        </View>
+      ) : (
+        renderEmptyState()
       )}
       
-      <FlatList
-        data={otherContacts}
-        keyExtractor={(item) => item.id}
-        renderItem={renderContact}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={contacts.length === 0 ? renderEmptyState : null}
-        extraData={refreshKey}
-        ListHeaderComponent={otherContacts.length > 0 && primaryContacts.length > 0 ? 
-          () => renderSectionHeader("Other Contacts") : null
-        }
-      />
-      
       <View style={styles.addButtonContainer}>
-        <TouchableOpacity 
-          style={styles.floatingButton}
-          onPress={handleAddContact}
-        >
-          <Plus size={24} color={colors.white} />
-        </TouchableOpacity>
+        <Button
+          title="Add New Contact"
+          leftIcon={<Plus size={20} color={Colors.white} />}
+          onPress={() => router.push("/contacts/add")}
+        />
       </View>
     </SafeAreaView>
   );
@@ -180,112 +168,63 @@ export default function ContactsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: Colors.gray[50],
   },
   header: {
-    padding: 20,
-    paddingBottom: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.textDark,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textLight,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    marginHorizontal: 20,
+    backgroundColor: Colors.tertiary,
+    padding: 16,
     marginBottom: 16,
+  },
+  headerText: {
+    fontSize: 14,
+    color: Colors.primary,
+    textAlign: "center",
+  },
+  section: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: Colors.text,
+    marginBottom: 12,
+  },
+  emptySection: {
+    backgroundColor: Colors.white,
     borderRadius: 12,
-    paddingHorizontal: 12,
+    padding: 16,
+    alignItems: "center",
   },
-  searchIcon: {
-    marginRight: 8,
+  emptyText: {
+    color: Colors.textSecondary,
+    textAlign: "center",
   },
-  searchInput: {
-    flex: 1,
-    height: 44,
-    fontSize: 16,
-    color: colors.textDark,
-  },
-  favoriteContactsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 8,
-  },
-  favoriteHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  favoriteHeaderText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary,
-    marginLeft: 8,
-  },
-  sectionHeader: {
-    backgroundColor: colors.cardBackground,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  sectionHeaderText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textDark,
-  },
-  listContent: {
-    padding: 20,
-    paddingTop: 0,
-    flexGrow: 1,
+  addButtonContainer: {
+    position: "absolute",
+    bottom: 16,
+    left: 16,
+    right: 16,
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyIcon: {
-    marginBottom: 20,
-    opacity: 0.7,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.textDark,
-    marginBottom: 12,
+    fontWeight: "bold",
+    color: Colors.text,
+    marginBottom: 8,
   },
-  emptyText: {
+  emptyDescription: {
     fontSize: 16,
-    color: colors.textLight,
-    textAlign: 'center',
+    color: Colors.textSecondary,
+    textAlign: "center",
     marginBottom: 24,
   },
-  addButton: {
-    marginTop: 16,
-  },
-  addButtonContainer: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-  },
-  floatingButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
+  addFirstButton: {
+    width: "100%",
+  }
 });
