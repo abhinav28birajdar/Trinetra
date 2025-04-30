@@ -1,3 +1,5 @@
+// E:/programming/React Native/women_safety_app/types/index.ts
+
 export interface User {
   id: string;
   name: string;
@@ -14,6 +16,7 @@ export interface Contact {
   phoneNumber: string;
   relationship: string;
   isTrusted: boolean;
+  isFavorite: boolean;
 }
 
 export interface AuthState {
@@ -32,6 +35,7 @@ export interface SOSState {
   } | null;
   activatedAt: Date | null;
   notifiedContacts: string[];
+  sirenActive: boolean;
 }
 
 export interface AppSettings {
@@ -63,4 +67,34 @@ export interface EvidenceItem {
     latitude: number;
     longitude: number;
   };
+}
+
+export interface CommunityPost {
+  id: string;
+  userId: string;
+  userName: string;
+  userImage?: string;
+  content: string;
+  timestamp: number;
+  likes: number;
+  comments: number;
+}
+
+// Define the specific categories expected by SafetyTipCard
+export type SafetyTipCategory =
+  | "general"
+  | "travel"
+  | "home"
+  | "digital"
+  | "public"
+  | "planning"
+  | "awareness"
+  | "preparedness"
+  | string; // Allow base string for flexibility, but prioritize known categories
+
+export interface SafetyTip {
+  id: string;
+  title: string;
+  content: string;
+  category: SafetyTipCategory; // Use the specific category type union
 }

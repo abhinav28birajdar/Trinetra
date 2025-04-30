@@ -203,7 +203,7 @@ export default function HomeScreen() {
                 <Button
                   title="Add Trusted Contact"
                   variant="outline"
-                  onPress={() => router.push("/contacts/add")}
+                  onPress={() => router.push("./contacts/add")}
                   style={styles.addContactButton}
                 />
               )}
@@ -216,7 +216,7 @@ export default function HomeScreen() {
               <Button
                 title="Add Trusted Contact"
                 variant="outline"
-                onPress={() => router.push("/contacts/add")}
+                onPress={() => router.push("./contacts/add")}
                 style={styles.addContactButton}
               />
             </View>

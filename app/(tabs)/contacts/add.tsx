@@ -95,10 +95,11 @@ export default function AddContactScreen() {
       });
     } else {
       addContact({
-        name: name.trim(),
-        phoneNumber: phoneNumber.trim(),
-        relationship,
-        isTrusted
+          name: name.trim(),
+          phoneNumber: phoneNumber.trim(),
+          relationship,
+          isTrusted,
+          isFavorite: false
       });
     }
     

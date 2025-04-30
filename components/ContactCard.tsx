@@ -20,47 +20,44 @@ export const ContactCard: React.FC<ContactCardProps> = ({
   onToggleTrusted
 }) => {
   return (
-    <View style={[
-      styles.container,
-      contact.isTrusted && styles.trustedContainer
-    ]}>
+    <View style={[styles.container, contact.isTrusted && styles.trustedContainer]}>
       <View style={styles.avatarContainer}>
         <Text style={styles.avatarText}>{contact.name.charAt(0)}</Text>
       </View>
-      
+
       <View style={styles.infoContainer}>
         <Text style={styles.name}>{contact.name}</Text>
         <Text style={styles.details}>{contact.relationship} • {contact.phoneNumber}</Text>
       </View>
-      
+
       <View style={styles.actionsContainer}>
-        <TouchableOpacity 
-          style={styles.actionButton} 
+        <TouchableOpacity
+          style={styles.actionButton}
           onPress={() => onCall(contact.phoneNumber)}
         >
           <Phone size={20} color={Colors.primary} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.actionButton} 
+
+        <TouchableOpacity
+          style={styles.actionButton}
           onPress={() => onToggleTrusted(contact.id, !contact.isTrusted)}
         >
-          <Star 
-            size={20} 
-            color={contact.isTrusted ? Colors.warning : Colors.gray[400]} 
-            fill={contact.isTrusted ? Colors.warning : "transparent"} 
+          <Star
+            size={20}
+            color={contact.isTrusted ? Colors.warning : Colors.gray[400]}
+            fill={contact.isTrusted ? Colors.warning : "transparent"}
           />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.actionButton} 
+
+        <TouchableOpacity
+          style={styles.actionButton}
           onPress={() => onEdit(contact)}
         >
           <Edit size={20} color={Colors.secondary} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.actionButton} 
+
+        <TouchableOpacity
+          style={styles.actionButton}
           onPress={() => onDelete(contact.id)}
         >
           <Trash2 size={20} color={Colors.danger} />
@@ -122,5 +119,5 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 8,
     marginLeft: 4,
-  }
+  },
 });

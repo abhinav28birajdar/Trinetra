@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// Ensure this import points correctly to your types file
 import { CommunityPost } from '@/types';
 
 interface CommunityState {
   posts: CommunityPost[];
+  // Input type uses Omit to exclude fields added automatically
   addPost: (post: Omit<CommunityPost, 'id' | 'timestamp' | 'likes' | 'comments'>) => void;
   likePost: (id: string) => void;
   removePost: (id: string) => void;
@@ -14,7 +16,7 @@ export const useCommunityStore = create<CommunityState>()(
   persist(
     (set) => ({
       posts: [],
-      addPost: (post) => 
+      addPost: (post) =>
         set((state) => ({
           posts: [
             {
@@ -22,22 +24,22 @@ export const useCommunityStore = create<CommunityState>()(
               id: Date.now().toString(),
               timestamp: Date.now(),
               likes: 0,
-              comments: 0
+              comments: 0 // You might enhance this later
             },
             ...state.posts
           ]
         })),
-      likePost: (id) => 
+      likePost: (id) =>
         set((state) => ({
-          posts: state.posts.map(post => 
-            post.id === id 
-              ? { ...post, likes: post.likes + 1 } 
-              : post
+          posts: state.posts.map(p =>
+            p.id === id
+              ? { ...p, likes: p.likes + 1 }
+              : p
           )
         })),
-      removePost: (id) => 
+      removePost: (id) =>
         set((state) => ({
-          posts: state.posts.filter(post => post.id !== id)
+          posts: state.posts.filter(p => p.id !== id)
         })),
     }),
     {
@@ -49,10 +51,10 @@ export const useCommunityStore = create<CommunityState>()(
 
 // Initialize with mock data for development
 if (__DEV__) {
-  // Check if posts are already set to avoid duplicating on reload
   const currentPosts = useCommunityStore.getState().posts;
   if (currentPosts.length === 0) {
-    const mockPosts = [
+    // Mock data needs to match the Omit type for addPost
+    const mockPosts: Omit<CommunityPost, 'id' | 'timestamp' | 'likes' | 'comments'>[] = [
       {
         userId: '2',
         userName: 'Priya Mehta',
@@ -72,7 +74,7 @@ if (__DEV__) {
         content: "There's a women's self-defense workshop happening this weekend at the community center. Anyone interested in joining?",
       },
     ];
-    
+
     mockPosts.forEach(post => {
       useCommunityStore.getState().addPost(post);
     });

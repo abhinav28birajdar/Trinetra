@@ -1,103 +1,144 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   Platform,
   ScrollView
 } from 'react-native';
 import { Check, Volume2, VolumeX } from 'lucide-react-native';
 import { useSOSStore } from '@/store/sos-store';
 import { useContactsStore } from '@/store/contacts-store';
-import { Button } from '@/components/Button';
+// import { Button } from '@/components/Button'; // Your custom button
+import { Button as PaperButton } from 'react-native-paper'; // Using Paper button as example
 import Colors from '@/constants/colors';
-import { router } from 'expo-router';
+import { router, Href } from 'expo-router';
+import { Contact } from '@/types'; // Import Contact type
 
 export default function SOSScreen() {
-  const { isActive, sirenActive, toggleSiren, deactivateSOS, location, activationTime, contactsNotified } = useSOSStore();
+  // Destructure state and actions using the CORRECT names from the updated store
+  const {
+    isActive,
+    sirenActive,    // Now exists in store state
+    toggleSiren,    // Now exists in store actions
+    deactivateSOS,  // Now exists in store actions (renamed from cancelSOS)
+    location,
+    activatedAt,    // Correct state name
+    notifiedContacts // Correct state name (array of IDs)
+  } = useSOSStore();
+
+  // Get full contact details from the contacts store
   const { contacts } = useContactsStore();
-  const [countdown, setCountdown] = useState(30);
-  
+
+  // Local state for the visual countdown display in this component
+  const { countdown: storeCountdown, decrementCountdown } = useSOSStore();
+  const [displayCountdown, setDisplayCountdown] = useState(storeCountdown);
+
+  // Effect to update local countdown based on store changes (e.g., reset)
+  useEffect(() => {
+    setDisplayCountdown(storeCountdown);
+  }, [storeCountdown]);
+
   // Redirect to home if SOS is not active
   useEffect(() => {
     if (!isActive) {
-      router.replace('/');
+      if (router.canGoBack()) {
+         router.back();
+      } else {
+         router.replace('/'); // Or appropriate landing screen
+      }
     }
   }, [isActive]);
-  
-  // Countdown timer
+
+  // Countdown timer effect for the UI
   useEffect(() => {
-    if (!isActive || countdown <= 0) return;
-    
-    const timer = setTimeout(() => {
-      setCountdown(prev => prev - 1);
+    if (!isActive || displayCountdown <= 0) return;
+
+    const timerId = setInterval(() => {
+      // Update local display countdown
+      setDisplayCountdown(prev => (prev > 0 ? prev - 1 : 0));
+      // Optionally decrement store countdown too if it's meant to reflect UI
+      // decrementCountdown(); // Uncomment if store countdown should also tick down
     }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [countdown, isActive]);
-  
-  // Get notified contacts
-  const notifiedContacts = contacts.filter(contact => 
-    contactsNotified.includes(contact.id)
+
+    // Optional: Auto-deactivate when UI timer reaches 0
+    // This logic might be better handled within the store based on its countdown
+    // if (displayCountdown === 0) {
+    //    console.log("Countdown reached zero, deactivating SOS from component.");
+    //    deactivateSOS();
+    // }
+
+    return () => clearInterval(timerId); // Clear interval on unmount or dependency change
+
+  }, [displayCountdown, isActive]); // Rerun if countdown or active status changes
+
+
+  // Get notified contacts' full details
+  const notifiedContactDetails = (contacts || []).filter((contact: Contact) =>
+    (notifiedContacts || []).includes(contact.id) // Use correct state name
   );
-  
-  // Format activation time
-  const formatTime = (timestamp: number | null) => {
-    if (!timestamp) return '';
-    
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  // Format activation time (Accepts Date | null)
+  const formatTime = (date: Date | null): string => {
+    if (!date) return 'N/A';
+    try {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+        console.error("Error formatting date:", e);
+        return 'Invalid Date';
+    }
   };
-  
+
+  // Prevent rendering if not active (redirect should handle this, but good practice)
   if (!isActive) {
-    return null; // Will redirect to home
+    return null;
   }
-  
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
           <Text style={styles.title}>🚨 SOS Activated</Text>
-          <Text style={styles.subtitle}>Help is on the way</Text>
-          
-          {activationTime && (
-            <Text style={styles.activationTime}>
-              Activated at {formatTime(activationTime)}
-            </Text>
-          )}
+          <Text style={styles.subtitle}>Sharing location & notifying contacts</Text>
+          <Text style={styles.activationTime}>
+            Activated at {formatTime(activatedAt)} {/* Use correct state name */}
+          </Text>
         </View>
-        
+
+        {/* Notified Contacts Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Location Shared With:</Text>
-          
-          {notifiedContacts.length > 0 ? (
+          <Text style={styles.sectionTitle}>Notified Contacts:</Text>
+          {notifiedContactDetails.length > 0 ? (
             <View style={styles.contactsList}>
-              {notifiedContacts.map(contact => (
+              {notifiedContactDetails.map(contact => (
                 <View key={contact.id} style={styles.contactItem}>
                   <View style={styles.contactAvatar}>
-                    <Text style={styles.contactInitial}>{contact.name.charAt(0)}</Text>
+                    <Text style={styles.contactInitial}>{contact.name ? contact.name.charAt(0).toUpperCase() : '?'}</Text>
                   </View>
                   <View style={styles.contactInfo}>
-                    <Text style={styles.contactName}>{contact.name}</Text>
-                    <Text style={styles.contactRelation}>{contact.relationship}</Text>
+                    <Text style={styles.contactName} numberOfLines={1}>{contact.name || 'Unknown'}</Text>
+                    <Text style={styles.contactRelation} numberOfLines={1}>{contact.relationship || 'N/A'}</Text>
                   </View>
+                  {/* Maybe add a status icon (e.g., checkmark if acknowledged)? */}
                 </View>
               ))}
             </View>
           ) : (
-            <Text style={styles.noContacts}>No contacts have been notified yet.</Text>
+            <Text style={styles.noContacts}>No trusted contacts were found to notify.</Text>
           )}
         </View>
-        
+
+        {/* Siren Control Section */}
         <View style={styles.section}>
           <View style={styles.sirenControl}>
             <Text style={styles.sectionTitle}>Emergency Siren:</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.sirenToggle}
-              onPress={toggleSiren}
+              onPress={toggleSiren} // Use action from store
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              {sirenActive ? (
+              {sirenActive ? ( // Use state from store
                 <Volume2 size={24} color={Colors.secondary} />
               ) : (
                 <VolumeX size={24} color={Colors.gray[500]} />
@@ -110,154 +151,213 @@ export default function SOSScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+           {/* Optional: Add info text about siren */}
+           <Text style={styles.sirenInfo}>
+                {sirenActive
+                  ? "Siren is active. Mute if needed."
+                  : "Siren is off. Tap icon to activate."}
+           </Text>
         </View>
-        
+
+        {/* Countdown Section - Shows local display countdown */}
         <View style={styles.section}>
           <Text style={styles.countdownLabel}>
-            Auto-cancel in: <Text style={styles.countdown}>{countdown}s</Text>
+            Time since activation: {/* Or show countdown if relevant */}
+            <Text style={styles.countdown}>{/* {displayCountdown}s */} TBD</Text>
           </Text>
           <Text style={styles.countdownInfo}>
-            SOS will remain active until you cancel it or the timer expires.
+            SOS remains active until manually cancelled. Location is updated periodically.
           </Text>
         </View>
+
+         {/* Location Info (Optional) */}
+         <View style={styles.section}>
+             <Text style={styles.sectionTitle}>Current Location:</Text>
+             {location ? (
+                 <Text style={styles.locationText}>
+                     Lat: {location.latitude.toFixed(4)}, Lon: {location.longitude.toFixed(4)}
+                 </Text>
+             ) : (
+                 <Text style={styles.locationText}>Fetching location...</Text>
+             )}
+         </View>
+
       </ScrollView>
-      
+
+      {/* Footer Button */}
       <View style={styles.footer}>
-        <Button
-          title="I'm Safe Now"
-          variant="success"
-          size="large"
-          leftIcon={<Check size={24} color={Colors.white} />}
-          onPress={deactivateSOS}
-          style={styles.safeButton}
-        />
+         <PaperButton
+           mode="contained"
+           onPress={deactivateSOS} // Use action from store
+           style={[styles.safeButton, { backgroundColor: Colors.success }]}
+           labelStyle={{ color: Colors.white }}
+           icon={() => <Check size={24} color={Colors.white} />}
+         >
+           I'm Safe Now (Cancel SOS)
+         </PaperButton>
       </View>
     </View>
   );
 }
 
+// --- Styles ---
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.white,
-  },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 100, // Space for the footer
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 32,
-    marginTop: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.secondary,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: Colors.text,
-    marginBottom: 8,
-  },
-  activationTime: {
-    fontSize: 14,
-    color: Colors.subtext,
-  },
-  section: {
-    marginBottom: 24,
-    backgroundColor: Colors.gray[100],
-    borderRadius: 12,
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: 12,
-  },
-  contactsList: {
-    gap: 12,
-  },
-  contactItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 8,
-    padding: 12,
-  },
-  contactAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  contactInitial: {
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  contactInfo: {
-    flex: 1,
-  },
-  contactName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  contactRelation: {
-    fontSize: 14,
-    color: Colors.subtext,
-  },
-  noContacts: {
-    color: Colors.subtext,
-    textAlign: 'center',
-    padding: 12,
-  },
-  sirenControl: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sirenToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sirenStatus: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  countdownLabel: {
-    fontSize: 16,
-    color: Colors.text,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  countdown: {
-    fontWeight: 'bold',
-    color: Colors.secondary,
-  },
-  countdownInfo: {
-    fontSize: 14,
-    color: Colors.subtext,
-    textAlign: 'center',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray[200],
-  },
-  safeButton: {
-    height: 56,
-  },
+    container: {
+        flex: 1,
+        backgroundColor: Colors.background, // Use background color
+      },
+      contentContainer: {
+        padding: 16,
+        paddingBottom: 120, // More space for the footer
+      },
+      header: {
+        alignItems: 'center',
+        marginBottom: 32,
+        marginTop: Platform.OS === 'ios' ? 0 : 16,
+      },
+      title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: Colors.danger, // Use danger color for SOS title
+        marginBottom: 8,
+        textAlign: 'center',
+      },
+      subtitle: {
+        fontSize: 16, // Slightly smaller subtitle
+        color: Colors.textSecondary,
+        marginBottom: 8,
+        textAlign: 'center',
+      },
+      activationTime: {
+        fontSize: 14,
+        color: Colors.subtext,
+        textAlign: 'center',
+      },
+      section: {
+        marginBottom: 20, // Slightly less margin between sections
+        backgroundColor: Colors.white, // Use white for section background
+        borderRadius: 12,
+        padding: 16,
+        // Add subtle shadow
+        shadowColor: Colors.black,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+      },
+      sectionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.text,
+        marginBottom: 12,
+      },
+      contactsList: {
+        gap: 10, // Slightly less gap
+      },
+      contactItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.gray[50], // Lighter background for item
+        borderRadius: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+      },
+      contactAvatar: {
+        width: 36, // Smaller avatar
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: Colors.secondary, // Use secondary color
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+      },
+      contactInitial: {
+        color: Colors.white,
+        fontSize: 16, // Smaller initial
+        fontWeight: 'bold',
+      },
+      contactInfo: {
+        flex: 1,
+      },
+      contactName: {
+        fontSize: 15, // Slightly smaller name
+        fontWeight: '600',
+        color: Colors.text,
+      },
+      contactRelation: {
+        fontSize: 13, // Smaller relationship text
+        color: Colors.subtext,
+      },
+      noContacts: {
+        color: Colors.subtext,
+        textAlign: 'center',
+        paddingVertical: 16, // More padding
+        fontSize: 14,
+      },
+      sirenControl: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8, // Add margin below control row
+      },
+      sirenToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        padding: 8,
+        borderRadius: 8,
+      },
+      sirenStatus: {
+        fontSize: 16,
+        fontWeight: 'bold',
+      },
+      sirenInfo: { // Style for the info text below siren control
+          fontSize: 13,
+          color: Colors.subtext,
+          marginTop: 4,
+      },
+      countdownLabel: {
+        fontSize: 16,
+        color: Colors.text,
+        textAlign: 'center',
+        marginBottom: 8,
+      },
+      countdown: {
+        fontWeight: 'bold',
+        color: Colors.secondary,
+        fontSize: 18,
+      },
+      countdownInfo: {
+        fontSize: 14,
+        color: Colors.subtext,
+        textAlign: 'center',
+        lineHeight: 20, // Improve readability
+      },
+      locationText: {
+          fontSize: 14,
+          color: Colors.textSecondary,
+          textAlign: 'center',
+      },
+      footer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: 16,
+        paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+        backgroundColor: Colors.white,
+        borderTopWidth: 1,
+        borderTopColor: Colors.gray[200],
+      },
+      safeButton: {
+        height: 56,
+        justifyContent: 'center',
+        borderRadius: 28, // Make button rounded
+         // Add shadow to button
+        shadowColor: Colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 4,
+      },
 });

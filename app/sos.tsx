@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,189 +7,191 @@ import {
   SafeAreaView,
   Platform,
   Animated,
-  Easing
+  Easing,
+  Alert,
+  ScrollView
 } from "react-native";
 import { router } from "expo-router";
 import { Check, Volume2, VolumeX, MapPin, Phone } from "lucide-react-native";
-import { Button } from "@/components/Button";
+import { Button as PaperButton } from "react-native-paper";
 import Colors from "@/constants/colors";
 import { useSOSStore } from "@/store/sos-store";
 import { useContactsStore } from "@/store/contacts-store";
 import { useSettingsStore } from "@/store/settings-store";
 import * as Haptics from "expo-haptics";
+import { Contact } from "@/types";
 
 export default function SOSScreen() {
-  const { 
-    isActive, 
-    countdown, 
-    location, 
-    activatedAt, 
+  const {
+    isActive,
+    countdown,
+    location,
+    activatedAt,
     notifiedContacts,
+    sirenActive,
     decrementCountdown,
-    cancelSOS 
+    deactivateSOS, // Use the correct action name from the store
+    toggleSiren
   } = useSOSStore();
-  
+
   const { contacts } = useContactsStore();
   const { settings } = useSettingsStore();
-  
-  const [sirenActive, setSirenActive] = useState(settings.sirenEnabled);
-  const pulseAnim = new Animated.Value(1);
-  
-  // Redirect to home if SOS is not active
+
+  const [displayCountdown, setDisplayCountdown] = useState(countdown);
+
+  useEffect(() => {
+      setDisplayCountdown(countdown);
+  }, [countdown]);
+
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     if (!isActive) {
-      router.replace("/");
+      if (router.canGoBack()) {
+          router.back();
+      } else {
+          router.replace("/");
+      }
     }
   }, [isActive]);
-  
-  // Countdown timer
+
   useEffect(() => {
-    if (!isActive || countdown <= 0) return;
-    
-    const timer = setTimeout(() => {
+    if (!isActive || displayCountdown <= 0) return;
+
+    const timerId = setInterval(() => {
+      setDisplayCountdown(prev => (prev > 0 ? prev - 1 : 0));
       decrementCountdown();
-      
-      // Trigger haptic feedback on each countdown tick
+
       if (Platform.OS !== "web" && settings.vibrationEnabled) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }
     }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [countdown, isActive]);
-  
-  // Pulse animation
+
+    return () => clearInterval(timerId);
+
+  }, [isActive, displayCountdown, decrementCountdown, settings.vibrationEnabled]);
+
   useEffect(() => {
+    if (!isActive || Platform.OS === 'web') return;
+
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 800,
+          toValue: 1.15,
+          duration: 700,
           easing: Easing.out(Easing.ease),
-          useNativeDriver: Platform.OS !== "web",
+          useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 800,
+          duration: 700,
           easing: Easing.in(Easing.ease),
-          useNativeDriver: Platform.OS !== "web",
+          useNativeDriver: true,
         }),
       ])
     );
-    
     pulse.start();
-    
-    return () => {
-      pulse.stop();
-    };
-  }, []);
-  
-  // Get notified contacts
-  const notifiedContactDetails = contacts.filter(contact => 
-    notifiedContacts.includes(contact.id)
+    return () => pulse.stop();
+  }, [isActive, pulseAnim]);
+
+  const notifiedContactDetails = (contacts || []).filter((contact: Contact) =>
+    (notifiedContacts || []).includes(contact.id)
   );
-  
-  // Format activation time
+
   const formatTime = (timestamp: Date | null) => {
-    if (!timestamp) return "";
-    
-    return timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    if (!timestamp) return "N/A";
+    try {
+      return timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch (e) {
+      return "Invalid Date";
+    }
   };
-  
+
   const handleToggleSiren = () => {
-    setSirenActive(!sirenActive);
+    toggleSiren();
+    if (Platform.OS !== 'web' && settings.vibrationEnabled) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
   };
-  
+
   const handleCancel = () => {
-    cancelSOS();
-    router.replace("/");
+    deactivateSOS(); // Call the correct action
   };
-  
-  if (!isActive) {
-    return null; // Will redirect to home
+
+  if (!isActive && !router.canGoBack()) {
+      return null;
   }
-  
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          {Platform.OS !== "web" ? (
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <View style={styles.sosIndicator}>
-                <Text style={styles.sosText}>SOS</Text>
-              </View>
-            </Animated.View>
-          ) : (
+          <Animated.View style={[styles.sosIndicatorWrapper, Platform.OS !== 'web' && { transform: [{ scale: pulseAnim }] }]}>
             <View style={styles.sosIndicator}>
               <Text style={styles.sosText}>SOS</Text>
             </View>
-          )}
-          
+          </Animated.View>
+
           <Text style={styles.title}>Emergency Mode Active</Text>
-          
-          {activatedAt && (
-            <Text style={styles.subtitle}>
-              Activated at {formatTime(activatedAt)}
-            </Text>
-          )}
-          
-          {countdown > 0 && (
+          <Text style={styles.subtitle}>
+            Activated at {formatTime(activatedAt)}
+          </Text>
+
+          {displayCountdown > 0 && (
             <View style={styles.countdownContainer}>
               <Text style={styles.countdownText}>
-                Auto-cancel in: <Text style={styles.countdownNumber}>{countdown}s</Text>
+                Auto-cancel in: <Text style={styles.countdownNumber}>{displayCountdown}s</Text>
               </Text>
             </View>
           )}
         </View>
-        
+
         <View style={styles.infoSection}>
           <View style={styles.infoHeader}>
             <MapPin size={20} color={Colors.primary} />
             <Text style={styles.infoTitle}>Your Location</Text>
           </View>
-          
           <View style={styles.locationInfo}>
             {location ? (
               <Text style={styles.locationText}>
-                Latitude: {location.latitude.toFixed(6)}{"\n"}
-                Longitude: {location.longitude.toFixed(6)}
+                Lat: {location.latitude.toFixed(5)}, Lon: {location.longitude.toFixed(5)}
               </Text>
             ) : (
-              <Text style={styles.locationText}>Fetching your location...</Text>
+              <Text style={styles.locationText}>Fetching location...</Text>
             )}
           </View>
         </View>
-        
+
         <View style={styles.infoSection}>
           <View style={styles.infoHeader}>
             <Phone size={20} color={Colors.primary} />
             <Text style={styles.infoTitle}>Notified Contacts</Text>
           </View>
-          
           {notifiedContactDetails.length > 0 ? (
             <View style={styles.contactsList}>
               {notifiedContactDetails.map(contact => (
                 <View key={contact.id} style={styles.contactItem}>
                   <View style={styles.contactAvatar}>
-                    <Text style={styles.contactInitial}>{contact.name.charAt(0)}</Text>
+                    <Text style={styles.contactInitial}>{contact.name ? contact.name.charAt(0).toUpperCase() : '?'}</Text>
                   </View>
                   <View style={styles.contactInfo}>
-                    <Text style={styles.contactName}>{contact.name}</Text>
-                    <Text style={styles.contactRelation}>{contact.relationship}</Text>
+                    <Text style={styles.contactName} numberOfLines={1}>{contact.name}</Text>
+                    <Text style={styles.contactRelation} numberOfLines={1}>{contact.relationship}</Text>
                   </View>
                 </View>
               ))}
             </View>
           ) : (
-            <Text style={styles.noContactsText}>No contacts have been notified yet.</Text>
+            <Text style={styles.noContactsText}>No trusted contacts were found to notify.</Text>
           )}
         </View>
-        
+
         <View style={styles.sirenControl}>
           <Text style={styles.sirenText}>Emergency Siren</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.sirenToggle}
             onPress={handleToggleSiren}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             {sirenActive ? (
               <Volume2 size={24} color={Colors.primary} />
@@ -204,17 +206,18 @@ export default function SOSScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
-      
+      </ScrollView>
+
       <View style={styles.footer}>
-        <Button
-          title="I'm Safe Now"
-          variant="success"
-          size="large"
-          leftIcon={<Check size={24} color={Colors.white} />}
+        <PaperButton
+          mode="contained"
           onPress={handleCancel}
-          style={styles.safeButton}
-        />
+          style={[styles.safeButton, { backgroundColor: Colors.success }]}
+          labelStyle={{ color: Colors.white, fontSize: 16, fontWeight: 'bold' }}
+          icon={() => <Check size={24} color={Colors.white} />}
+        >
+          I'm Safe Now
+        </PaperButton>
       </View>
     </SafeAreaView>
   );
@@ -225,55 +228,62 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
+  scrollContainer: {
+      flex: 1,
+  },
   content: {
-    flex: 1,
-    padding: 24,
+    flexGrow: 1,
+    padding: 20,
+    paddingBottom: 120,
   },
   header: {
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 28,
+  },
+  sosIndicatorWrapper: {
+      marginBottom: 16,
   },
   sosIndicator: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.danger,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
-    shadowColor: Colors.black,
+    shadowColor: Colors.danger,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 10,
   },
   sosText: {
     color: Colors.white,
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
+    letterSpacing: 1,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
     color: Colors.text,
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.textSecondary,
     marginBottom: 16,
     textAlign: "center",
   },
   countdownContainer: {
-    backgroundColor: Colors.accent + "20",
-    paddingVertical: 8,
+    backgroundColor: Colors.danger + "1A",
+    paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 20,
   },
   countdownText: {
-    fontSize: 16,
-    color: Colors.accent,
+    fontSize: 15,
+    color: Colors.danger,
     fontWeight: "500",
   },
   countdownNumber: {
@@ -294,12 +304,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: Colors.text,
-    marginLeft: 8,
+    marginLeft: 10,
   },
   locationInfo: {
     backgroundColor: Colors.white,
     borderRadius: 8,
     padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
   },
   locationText: {
     fontSize: 14,
@@ -307,19 +319,21 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   contactsList: {
-    gap: 12,
+    gap: 10,
   },
   contactItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.white,
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
   },
   contactAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: Colors.tertiary,
     justifyContent: "center",
     alignItems: "center",
@@ -334,22 +348,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contactName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
     color: Colors.text,
-    marginBottom: 2,
   },
   contactRelation: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.textSecondary,
   },
   noContactsText: {
     fontSize: 14,
     color: Colors.textSecondary,
     textAlign: "center",
-    padding: 12,
+    paddingVertical: 16,
     backgroundColor: Colors.white,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
   },
   sirenControl: {
     flexDirection: "row",
@@ -357,7 +372,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: Colors.gray[50],
     borderRadius: 12,
-    padding: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     marginBottom: 16,
   },
   sirenText: {
@@ -369,18 +385,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    padding: 6,
+    borderRadius: 8,
   },
   sirenStatus: {
     fontSize: 16,
     fontWeight: "bold",
   },
   footer: {
-    padding: 24,
+    padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderTopColor: Colors.gray[200],
   },
   safeButton: {
     height: 56,
+    borderRadius: 28,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
 });
