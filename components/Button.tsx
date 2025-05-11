@@ -1,51 +1,43 @@
-import React from "react";
-import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
+import React from 'react';
+import { 
+  TouchableOpacity, 
+  Text, 
+  StyleSheet, 
   ActivityIndicator,
   ViewStyle,
   TextStyle,
   TouchableOpacityProps
-} from "react-native";
-import Colors from "@/constants/colors";
+} from 'react-native';
+import Colors from '@/constants/colors';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
-  variant?: "primary" | "secondary" | "outline" | "danger" | "success" | "text";
-  size?: "small" | "medium" | "large";
-  loading?: boolean;
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger';
+  size?: 'small' | 'medium' | 'large';
+  isLoading?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
 }
 
-export const Button: React.FC<ButtonProps> = ({
+const Button: React.FC<ButtonProps> = ({
   title,
-  variant = "primary",
-  size = "medium",
-  loading = false,
+  variant = 'primary',
+  size = 'medium',
+  isLoading = false,
   style,
   textStyle,
-  leftIcon,
-  rightIcon,
   ...props
 }) => {
   const getButtonStyle = () => {
     switch (variant) {
-      case "primary":
+      case 'primary':
         return styles.primaryButton;
-      case "secondary":
+      case 'secondary':
         return styles.secondaryButton;
-      case "outline":
+      case 'outline':
         return styles.outlineButton;
-      case "danger":
+      case 'danger':
         return styles.dangerButton;
-      case "success":
-        return styles.successButton;
-      case "text":
-        return styles.textButton;
       default:
         return styles.primaryButton;
     }
@@ -53,27 +45,26 @@ export const Button: React.FC<ButtonProps> = ({
 
   const getTextStyle = () => {
     switch (variant) {
-      case "primary":
-      case "secondary":
-      case "danger":
-      case "success":
-        return styles.lightText;
-      case "outline":
-        return { ...styles.darkText, color: Colors.primary };
-      case "text":
-        return { ...styles.darkText, color: Colors.primary };
+      case 'primary':
+        return styles.primaryText;
+      case 'secondary':
+        return styles.secondaryText;
+      case 'outline':
+        return styles.outlineText;
+      case 'danger':
+        return styles.dangerText;
       default:
-        return styles.lightText;
+        return styles.primaryText;
     }
   };
 
   const getSizeStyle = () => {
     switch (size) {
-      case "small":
+      case 'small':
         return styles.smallButton;
-      case "medium":
+      case 'medium':
         return styles.mediumButton;
-      case "large":
+      case 'large':
         return styles.largeButton;
       default:
         return styles.mediumButton;
@@ -82,11 +73,11 @@ export const Button: React.FC<ButtonProps> = ({
 
   const getTextSizeStyle = () => {
     switch (size) {
-      case "small":
+      case 'small':
         return styles.smallText;
-      case "medium":
+      case 'medium':
         return styles.mediumText;
-      case "large":
+      case 'large':
         return styles.largeText;
       default:
         return styles.mediumText;
@@ -95,24 +86,30 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <TouchableOpacity
-      style={[styles.button, getButtonStyle(), getSizeStyle(), style]}
-      disabled={loading || props.disabled}
-      activeOpacity={0.8}
+      style={[
+        styles.button,
+        getButtonStyle(),
+        getSizeStyle(),
+        isLoading && styles.disabledButton,
+        style,
+      ]}
+      disabled={isLoading || props.disabled}
       {...props}
     >
-      {loading ? (
+      {isLoading ? (
         <ActivityIndicator 
-          color={variant === "outline" || variant === "text" ? Colors.primary : Colors.white} 
+          color={variant === 'outline' ? Colors.primary : Colors.white} 
           size="small" 
         />
       ) : (
-        <>
-          {leftIcon && <span style={styles.iconContainer}>{leftIcon}</span>}
-          <Text style={[styles.text, getTextStyle(), getTextSizeStyle(), textStyle]}>
-            {title}
-          </Text>
-          {rightIcon && <span style={styles.iconContainer}>{rightIcon}</span>}
-        </>
+        <Text style={[
+          styles.text,
+          getTextStyle(),
+          getTextSizeStyle(),
+          textStyle,
+        ]}>
+          {title}
+        </Text>
       )}
     </TouchableOpacity>
   );
@@ -120,11 +117,9 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 12,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   primaryButton: {
     backgroundColor: Colors.primary,
@@ -133,43 +128,45 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary,
   },
   outlineButton: {
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: Colors.primary,
   },
   dangerButton: {
-    backgroundColor: Colors.danger,
+    backgroundColor: Colors.error,
   },
-  successButton: {
-    backgroundColor: Colors.success,
-  },
-  textButton: {
-    backgroundColor: "transparent",
+  disabledButton: {
+    opacity: 0.7,
   },
   smallButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
   },
   mediumButton: {
     paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
   },
   largeButton: {
     paddingVertical: 16,
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
   },
   text: {
-    fontWeight: "600",
-    textAlign: "center",
+    fontWeight: '600',
   },
-  lightText: {
+  primaryText: {
     color: Colors.white,
   },
-  darkText: {
-    color: Colors.text,
+  secondaryText: {
+    color: Colors.primary,
+  },
+  outlineText: {
+    color: Colors.primary,
+  },
+  dangerText: {
+    color: Colors.white,
   },
   smallText: {
-    fontSize: 14,
+    fontSize: 12,
   },
   mediumText: {
     fontSize: 16,
@@ -177,9 +174,6 @@ const styles = StyleSheet.create({
   largeText: {
     fontSize: 18,
   },
-  iconContainer: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  }
 });
+
+export default Button;

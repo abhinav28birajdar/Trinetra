@@ -1,100 +1,41 @@
-// E:/programming/React Native/women_safety_app/types/index.ts
-
 export interface User {
   id: string;
-  name: string;
   email: string;
-  phoneNumber: string;
-  address?: string;
-  emergencyContacts: Contact[];
-  profileImage?: string;
+  username: string;
+  phone?: string;
+  age?: string;
+  bloodGroup?: string;
+  avatarUrl?: string;
+  createdAt: string;
 }
 
 export interface Contact {
   id: string;
+  userId: string;
   name: string;
-  phoneNumber: string;
+  phone: string;
   relationship: string;
-  isTrusted: boolean;
-  isFavorite: boolean;
+  isEmergency: boolean;
+  createdAt: string;
 }
 
-export interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-}
-
-export interface SOSState {
-  isActive: boolean;
-  countdown: number;
-  location: {
-    latitude: number;
-    longitude: number;
-  } | null;
-  activatedAt: Date | null;
-  notifiedContacts: string[];
-  sirenActive: boolean;
-}
-
-export interface AppSettings {
-  theme: "light" | "dark" | "system";
-  notifications: boolean;
-  locationSharing: boolean;
-  autoSOS: boolean;
-  sosCountdownDuration: number;
-  sirenEnabled: boolean;
-  vibrationEnabled: boolean;
-  language: "en" | "hi" | "es" | "fr";
-}
-
-export interface SafetyResource {
-  id: string;
-  title: string;
-  description: string;
-  url?: string;
-  type: "article" | "video" | "link" | "tip";
-}
-
-export interface EvidenceItem {
-  id: string;
-  type: "photo" | "video" | "audio" | "note";
-  uri: string;
-  timestamp: Date;
-  description?: string;
-  location?: {
-    latitude: number;
-    longitude: number;
-  };
-}
-
-export interface CommunityPost {
+export interface Message {
   id: string;
   userId: string;
-  userName: string;
-  userImage?: string;
+  username: string;
   content: string;
-  timestamp: number;
-  likes: number;
-  comments: number;
+  createdAt: string;
 }
 
-// Define the specific categories expected by SafetyTipCard
-export type SafetyTipCategory =
-  | "general"
-  | "travel"
-  | "home"
-  | "digital"
-  | "public"
-  | "planning"
-  | "awareness"
-  | "preparedness"
-  | string; // Allow base string for flexibility, but prioritize known categories
+export interface Location {
+  latitude: number;
+  longitude: number;
+  timestamp: number;
+}
 
-export interface SafetyTip {
+export interface EmergencyService {
   id: string;
-  title: string;
-  content: string;
-  category: SafetyTipCategory; // Use the specific category type union
+  name: string;
+  number: string;
+  type: 'police' | 'ambulance' | 'fire' | 'other';
 }

@@ -3,16 +3,11 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { useAuthStore } from "@/store/auth-store";
-import { useColorScheme } from "react-native";
-
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from "expo-router";
+import { Platform } from "react-native";
+import { ErrorBoundary } from "./error-boundary";
+import { useAuthStore } from "@/store/authStore";
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: "(auth)",
 };
 
@@ -23,13 +18,13 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     ...FontAwesome.font,
   });
-  
-  const { isAuthenticated } = useAuthStore();
-  const colorScheme = useColorScheme();
+  const { setSession } = useAuthStore();
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
-    if (error) throw error;
+    if (error) {
+      console.error(error);
+      throw error;
+    }
   }, [error]);
 
   useEffect(() => {
@@ -38,72 +33,51 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
+  useEffect(() => {
+    // Set up auth state listener only on web platform
+    // This avoids the Node.js dependency issues on native
+    if (Platform.OS === 'web') {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          setSession(session);
+        }
+      );
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    } else {
+      // For native platforms, we'll handle auth state manually
+      // by checking the session in the auth store
+      const checkSession = async () => {
+        try {
+          const { data } = await supabase.auth.getSession();
+          setSession(data.session);
+        } catch (error) {
+          console.error('Error checking session:', error);
+        }
+      };
+      
+      checkSession();
+    }
+  }, []);
+
   if (!loaded) {
     return null;
   }
 
   return (
+    <ErrorBoundary>
+      <RootLayoutNav />
+    </ErrorBoundary>
+  );
+}
+
+function RootLayoutNav() {
+  return (
     <Stack screenOptions={{ headerShown: false }}>
-      {isAuthenticated ? (
-        <>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen 
-            name="sos" 
-            options={{ 
-              presentation: "modal",
-              animation: "fade",
-              headerShown: false,
-            }} 
-          />
-          <Stack.Screen 
-            name="safety-tips" 
-            options={{ 
-              presentation: "card",
-              headerShown: true,
-              headerTitle: "Safety Tips",
-              headerTintColor: "#FF6B8B",
-            }} 
-          />
-          <Stack.Screen 
-            name="helplines" 
-            options={{ 
-              presentation: "card",
-              headerShown: true,
-              headerTitle: "Emergency Helplines",
-              headerTintColor: "#FF6B8B",
-            }} 
-          />
-          <Stack.Screen 
-            name="evidence" 
-            options={{ 
-              presentation: "card",
-              headerShown: true,
-              headerTitle: "Evidence Collection",
-              headerTintColor: "#FF6B8B",
-            }} 
-          />
-          <Stack.Screen 
-            name="about" 
-            options={{ 
-              presentation: "card",
-              headerShown: true,
-              headerTitle: "About SheSafe",
-              headerTintColor: "#FF6B8B",
-            }} 
-          />
-          <Stack.Screen 
-            name="contact" 
-            options={{ 
-              presentation: "card",
-              headerShown: true,
-              headerTitle: "Contact Us",
-              headerTintColor: "#FF6B8B",
-            }} 
-          />
-        </>
-      ) : (
-        <Stack.Screen name="(auth)" />
-      )}
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="(app)" options={{ headerShown: false }} />
     </Stack>
   );
 }

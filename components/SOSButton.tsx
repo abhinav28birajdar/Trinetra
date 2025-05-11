@@ -1,143 +1,138 @@
-import React, { useState, useEffect } from "react";
+import React from 'react';
 import { 
   TouchableOpacity, 
   Text, 
   StyleSheet, 
-  Animated, 
+  ViewStyle,
+  Animated,
   Easing,
-  Platform,
-  View
-} from "react-native";
-import { AlertTriangle } from "lucide-react-native";
-import Colors from "@/constants/colors";
-import * as Haptics from "expo-haptics";
+} from 'react-native';
+import { useEmergencyStore } from '@/store/emergencyStore';
+import Colors from '@/constants/colors';
 
 interface SOSButtonProps {
-  onPress: () => void;
-  size?: "normal" | "large";
-  label?: string;
+  size?: 'small' | 'medium' | 'large';
+  style?: ViewStyle;
+  onPress?: () => void;
 }
 
-export const SOSButton: React.FC<SOSButtonProps> = ({ 
-  onPress, 
-  size = "normal",
-  label = "SOS"
+const SOSButton: React.FC<SOSButtonProps> = ({
+  size = 'medium',
+  style,
+  onPress,
 }) => {
-  const [isPressed, setIsPressed] = useState(false);
-  const pulseAnim = new Animated.Value(1);
-  
-  useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 800,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: Platform.OS !== "web",
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 800,
-          easing: Easing.in(Easing.ease),
-          useNativeDriver: Platform.OS !== "web",
-        }),
-      ])
-    );
-    
-    pulse.start();
-    
-    return () => {
-      pulse.stop();
-    };
-  }, []);
-  
+  const { isSOSActive, activateSOS, deactivateSOS } = useEmergencyStore();
+  const pulseAnim = React.useRef(new Animated.Value(1)).current;
+
+  React.useEffect(() => {
+    if (isSOSActive) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.2,
+            duration: 500,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 500,
+            easing: Easing.in(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isSOSActive, pulseAnim]);
+
   const handlePress = () => {
-    setIsPressed(true);
-    
-    // Trigger haptic feedback on supported platforms
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    if (isSOSActive) {
+      deactivateSOS();
+    } else {
+      activateSOS();
     }
     
-    // Call the onPress handler
-    onPress();
-    
-    // Reset the pressed state after a delay
-    setTimeout(() => {
-      setIsPressed(false);
-    }, 200);
+    if (onPress) {
+      onPress();
+    }
   };
-  
-  const buttonSize = size === "large" ? styles.largeButton : styles.normalButton;
-  const textSize = size === "large" ? styles.largeText : styles.normalText;
-  
-  return Platform.OS !== "web" ? (
-    <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+
+  const getSizeStyle = () => {
+    switch (size) {
+      case 'small':
+        return { width: 50, height: 50 };
+      case 'medium':
+        return { width: 70, height: 70 };
+      case 'large':
+        return { width: 120, height: 120 };
+      default:
+        return { width: 70, height: 70 };
+    }
+  };
+
+  const getTextSize = () => {
+    switch (size) {
+      case 'small':
+        return { fontSize: 12 };
+      case 'medium':
+        return { fontSize: 16 };
+      case 'large':
+        return { fontSize: 24 };
+      default:
+        return { fontSize: 16 };
+    }
+  };
+
+  return (
+    <Animated.View
+      style={[
+        styles.animatedContainer,
+        { transform: [{ scale: pulseAnim }] },
+      ]}
+    >
       <TouchableOpacity
         style={[
           styles.button,
-          buttonSize,
-          isPressed && styles.buttonPressed,
+          getSizeStyle(),
+          isSOSActive ? styles.activeButton : {},
+          style,
         ]}
         onPress={handlePress}
         activeOpacity={0.7}
       >
-        <AlertTriangle size={size === "large" ? 32 : 24} color={Colors.white} />
-        <Text style={[styles.text, textSize]}>{label}</Text>
+        <Text style={[styles.text, getTextSize()]}>
+          {isSOSActive ? 'SOS' : 'SOS'}
+        </Text>
       </TouchableOpacity>
     </Animated.View>
-  ) : (
-    // Fallback for web without animation
-    <View>
-      <TouchableOpacity
-        style={[
-          styles.button,
-          buttonSize,
-          isPressed && styles.buttonPressed,
-        ]}
-        onPress={handlePress}
-        activeOpacity={0.7}
-      >
-        <AlertTriangle size={size === "large" ? 32 : 24} color={Colors.white} />
-        <Text style={[styles.text, textSize]}>{label}</Text>
-      </TouchableOpacity>
-    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  animatedContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   button: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.primary,
     borderRadius: 100,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
     shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowRadius: 3,
   },
-  normalButton: {
-    width: 80,
-    height: 80,
-  },
-  largeButton: {
-    width: 120,
-    height: 120,
-  },
-  buttonPressed: {
-    backgroundColor: "#E03060", // Darker shade when pressed
-    transform: [{ scale: 0.95 }],
+  activeButton: {
+    backgroundColor: Colors.sosRed,
   },
   text: {
     color: Colors.white,
-    fontWeight: "bold",
-    marginTop: 4,
-  },
-  normalText: {
-    fontSize: 16,
-  },
-  largeText: {
-    fontSize: 22,
+    fontWeight: 'bold',
   },
 });
+
+export default SOSButton;

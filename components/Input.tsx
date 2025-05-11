@@ -1,75 +1,92 @@
-import React, { useState } from "react";
-import {
-  View,
-  TextInput,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
+import React, { useState } from 'react';
+import { 
+  View, 
+  TextInput, 
+  Text, 
+  StyleSheet, 
   TextInputProps,
-  ViewStyle
-} from "react-native";
-import { Eye, EyeOff } from "lucide-react-native";
-import Colors from "@/constants/colors";
+  ViewStyle,
+  TouchableOpacity,
+} from 'react-native';
+import { Eye, EyeOff, User, Mail, Lock, Phone } from 'lucide-react-native';
+import Colors from '@/constants/colors';
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
+  leftIcon?: 'user' | 'mail' | 'lock' | 'phone' | null;
   containerStyle?: ViewStyle;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
   isPassword?: boolean;
 }
 
-export const Input: React.FC<InputProps> = ({
+const Input: React.FC<InputProps> = ({
   label,
   error,
-  containerStyle,
   leftIcon,
-  rightIcon,
+  containerStyle,
   isPassword = false,
   ...props
 }) => {
-  const [showPassword, setShowPassword] = useState(false);
-  
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
+  const [secureTextEntry, setSecureTextEntry] = useState(isPassword);
+
+  const renderLeftIcon = () => {
+    if (!leftIcon) return null;
+
+    const iconProps = {
+      size: 20,
+      color: Colors.primary,
+      style: styles.leftIcon
+    };
+
+    switch (leftIcon) {
+      case 'user':
+        return <User {...iconProps} />;
+      case 'mail':
+        return <Mail {...iconProps} />;
+      case 'lock':
+        return <Lock {...iconProps} />;
+      case 'phone':
+        return <Phone {...iconProps} />;
+      default:
+        return null;
+    }
   };
-  
+
+  const toggleSecureEntry = () => {
+    setSecureTextEntry(!secureTextEntry);
+  };
+
   return (
     <View style={[styles.container, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
-      
       <View style={[
         styles.inputContainer,
         error ? styles.inputError : null,
-        leftIcon ? { paddingLeft: 12 } : null,
-        rightIcon || isPassword ? { paddingRight: 12 } : null
       ]}>
-        {leftIcon && <View style={styles.leftIconContainer}>{leftIcon}</View>}
-        
+        {renderLeftIcon()}
         <TextInput
-          style={styles.input}
-          placeholderTextColor={Colors.gray[400]}
-          secureTextEntry={isPassword && !showPassword}
+          style={[
+            styles.input,
+            leftIcon ? styles.inputWithLeftIcon : null,
+            isPassword ? styles.inputWithRightIcon : null,
+          ]}
+          placeholderTextColor={Colors.textLight}
+          secureTextEntry={secureTextEntry}
           {...props}
         />
-        
-        {isPassword ? (
+        {isPassword && (
           <TouchableOpacity 
-            style={styles.rightIconContainer} 
-            onPress={togglePasswordVisibility}
+            style={styles.rightIcon} 
+            onPress={toggleSecureEntry}
           >
-            {showPassword ? (
-              <EyeOff size={20} color={Colors.gray[500]} />
+            {secureTextEntry ? (
+              <Eye size={20} color={Colors.primary} />
             ) : (
-              <Eye size={20} color={Colors.gray[500]} />
+              <EyeOff size={20} color={Colors.primary} />
             )}
           </TouchableOpacity>
-        ) : rightIcon ? (
-          <View style={styles.rightIconContainer}>{rightIcon}</View>
-        ) : null}
+        )}
       </View>
-      
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
@@ -80,19 +97,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: Colors.text,
     marginBottom: 8,
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.primary,
   },
   inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.white,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.gray[300],
-    borderRadius: 12,
-    overflow: "hidden",
+    borderColor: Colors.border,
+    borderRadius: 8,
+    backgroundColor: Colors.white,
   },
   input: {
     flex: 1,
@@ -101,18 +117,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
   },
+  inputWithLeftIcon: {
+    paddingLeft: 8,
+  },
+  inputWithRightIcon: {
+    paddingRight: 40,
+  },
+  leftIcon: {
+    marginLeft: 12,
+  },
+  rightIcon: {
+    position: 'absolute',
+    right: 12,
+  },
   inputError: {
-    borderColor: Colors.danger,
+    borderColor: Colors.error,
   },
   errorText: {
-    color: Colors.danger,
-    fontSize: 14,
+    color: Colors.error,
+    fontSize: 12,
     marginTop: 4,
   },
-  leftIconContainer: {
-    paddingLeft: 12,
-  },
-  rightIconContainer: {
-    paddingRight: 12,
-  }
 });
+
+export default Input;

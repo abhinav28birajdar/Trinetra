@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useRouter, useSegments } from "expo-router";
 import { useAuthStore } from "@/store/authStore";
 
-export default function AuthLayout() {
+export default function AppLayout() {
   const { user, session } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
@@ -11,10 +11,7 @@ export default function AuthLayout() {
   useEffect(() => {
     const inAuthGroup = segments[0] === "(auth)";
     
-    if (user && session && inAuthGroup) {
-      // Redirect to the main app if authenticated
-      router.replace("/(app)/(tabs)/home");
-    } else if (!user && !session && !inAuthGroup) {
+    if (!user && !session && !inAuthGroup) {
       // Redirect to login if not authenticated
       router.replace("/(auth)/login");
     }
@@ -22,8 +19,12 @@ export default function AuthLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="login" />
-      <Stack.Screen name="register" />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="sos" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="call" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="location-share" options={{ presentation: 'fullScreenModal' }} />
+      <Stack.Screen name="add-contact" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="chat" options={{ presentation: 'card' }} />
     </Stack>
   );
 }
