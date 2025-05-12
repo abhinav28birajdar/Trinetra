@@ -4,10 +4,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { Location as LocationType } from '@/types';
 
 interface LocationState {
-  currentLocation: LocationType | null;
+  currentLocation: {
+    latitude: number;
+    longitude: number;
+    timestamp: number;
+  } | null;
   isTracking: boolean;
   hasPermission: boolean | null;
   error: string | null;
@@ -30,18 +33,9 @@ export const useLocationStore = create<LocationState>()(
       requestPermission: async () => {
         try {
           set({ error: null });
-          
-          if (Platform.OS === 'web') {
-            set({ hasPermission: true });
-            return;
-          }
-          
           const { status } = await Location.requestForegroundPermissionsAsync();
           set({ hasPermission: status === 'granted' });
-          
-          if (status !== 'granted') {
-            throw new Error('Permission to access location was denied');
-          }
+          if (status !== 'granted') throw new Error('Permission denied');
         } catch (error: any) {
           set({ error: error.message, hasPermission: false });
         }
@@ -50,16 +44,9 @@ export const useLocationStore = create<LocationState>()(
       startTracking: async () => {
         try {
           set({ error: null });
+          if (!get().hasPermission) await get().requestPermission();
+          if (!get().hasPermission) throw new Error('Permission not granted');
           
-          if (!get().hasPermission) {
-            await get().requestPermission();
-          }
-          
-          if (!get().hasPermission) {
-            throw new Error('Location permission not granted');
-          }
-          
-          // Get initial location
           const location = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.High,
           });
@@ -73,7 +60,6 @@ export const useLocationStore = create<LocationState>()(
             isTracking: true,
           });
           
-          // Start watching position
           Location.watchPositionAsync(
             {
               accuracy: Location.Accuracy.High,
@@ -102,7 +88,6 @@ export const useLocationStore = create<LocationState>()(
       shareLocation: async (contactId) => {
         try {
           set({ error: null });
-          
           const { data: session } = await supabase.auth.getSession();
           if (!session.session) throw new Error('Not authenticated');
           

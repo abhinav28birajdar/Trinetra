@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -36,7 +36,7 @@ export default function HomeScreen() {
   };
   
   const navigateToContacts = () => {
-    router.push('/profile');
+    router.push('/contacts');
   };
   
   return (
@@ -44,18 +44,16 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.userInfo}>
           <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
+            source={{ uri: user?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
             style={styles.avatar}
           />
-          <Text style={styles.username}>User..</Text>
+          <Text style={styles.username}>{user?.username || 'User'}</Text>
         </View>
         <TouchableOpacity 
           style={styles.settingsButton}
           onPress={() => router.push('/profile')}
         >
-          <View style={styles.settingsIcon}>
-            <Text>⚙️</Text>
-          </View>
+          <Text style={styles.settingsIcon}>⚙️</Text>
         </TouchableOpacity>
       </View>
       

@@ -2,23 +2,26 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
-import { User } from '@/types';
 
 interface AuthState {
-  user: User | null;
+  user: {
+    id: string;
+    email: string;
+    username: string;
+    phone?: string;
+    age?: string;
+    bloodGroup?: string;
+    avatarUrl?: string;
+    createdAt: string;
+  } | null;
   session: any | null;
   isLoading: boolean;
   error: string | null;
   
-  // Auth actions
   signUp: (email: string, password: string, username: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  
-  // Profile actions
-  updateProfile: (data: Partial<User>) => Promise<void>;
-  
-  // Session management
+  updateProfile: (data: any) => Promise<void>;
   setSession: (session: any) => void;
   clearError: () => void;
 }
@@ -34,19 +37,15 @@ export const useAuthStore = create<AuthState>()(
       signUp: async (email, password, username) => {
         try {
           set({ isLoading: true, error: null });
-          
           const { data, error } = await supabase.auth.signUp({
             email,
             password,
-            options: {
-              data: { username }
-            }
+            options: { data: { username } }
           });
           
           if (error) throw error;
           
           if (data.user) {
-            // Create user profile in profiles table
             const { error: profileError } = await supabase
               .from('profiles')
               .insert({
@@ -78,7 +77,6 @@ export const useAuthStore = create<AuthState>()(
       signIn: async (email, password) => {
         try {
           set({ isLoading: true, error: null });
-          
           const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
@@ -87,7 +85,6 @@ export const useAuthStore = create<AuthState>()(
           if (error) throw error;
           
           if (data.user) {
-            // Fetch user profile
             const { data: profileData, error: profileError } = await supabase
               .from('profiles')
               .select('*')
@@ -120,11 +117,8 @@ export const useAuthStore = create<AuthState>()(
       signOut: async () => {
         try {
           set({ isLoading: true, error: null });
-          
           const { error } = await supabase.auth.signOut();
-          
           if (error) throw error;
-          
           set({ user: null, session: null });
         } catch (error: any) {
           set({ error: error.message });
@@ -136,7 +130,6 @@ export const useAuthStore = create<AuthState>()(
       updateProfile: async (data) => {
         try {
           set({ isLoading: true, error: null });
-          
           const user = get().user;
           if (!user) throw new Error('User not authenticated');
           

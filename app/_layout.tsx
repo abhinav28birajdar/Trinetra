@@ -6,12 +6,12 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import { ErrorBoundary } from "./error-boundary";
 import { useAuthStore } from "@/store/authStore";
+import { supabase } from "@/lib/supabase";
 
 export const unstable_settings = {
   initialRouteName: "(auth)",
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -21,21 +21,14 @@ export default function RootLayout() {
   const { setSession } = useAuthStore();
 
   useEffect(() => {
-    if (error) {
-      console.error(error);
-      throw error;
-    }
+    if (error) throw error;
   }, [error]);
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
+    if (loaded) SplashScreen.hideAsync();
   }, [loaded]);
 
   useEffect(() => {
-    // Set up auth state listener only on web platform
-    // This avoids the Node.js dependency issues on native
     if (Platform.OS === 'web') {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         (event, session) => {
@@ -43,28 +36,17 @@ export default function RootLayout() {
         }
       );
 
-      return () => {
-        subscription.unsubscribe();
-      };
+      return () => subscription.unsubscribe();
     } else {
-      // For native platforms, we'll handle auth state manually
-      // by checking the session in the auth store
       const checkSession = async () => {
-        try {
-          const { data } = await supabase.auth.getSession();
-          setSession(data.session);
-        } catch (error) {
-          console.error('Error checking session:', error);
-        }
+        const { data } = await supabase.auth.getSession();
+        setSession(data.session);
       };
-      
       checkSession();
     }
   }, []);
 
-  if (!loaded) {
-    return null;
-  }
+  if (!loaded) return null;
 
   return (
     <ErrorBoundary>

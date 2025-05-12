@@ -33,16 +33,16 @@ export const useLocationStore = create<LocationState & LocationActions>((set) =>
     // Actions
     requestPermission: async () => {
       try {
-        set({ isLoading: true }); // Set loading state
+        set({ isLoading: true });
         const { status } = await Location.requestForegroundPermissionsAsync();
         set({ 
           hasPermission: status === 'granted',
-          isLoading: false // Reset loading state
+          isLoading: false 
         });
       } catch (error) {
         set({ 
           error: 'Failed to request location permission',
-          isLoading: false // Reset loading state
+          isLoading: false 
         });
       }
     },
