@@ -1,166 +1,118 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '@/lib/supabase';
+import { User } from '@/types';
 
 interface AuthState {
-  user: {
-    id: string;
-    email: string;
-    username: string;
-    phone?: string;
-    age?: string;
-    bloodGroup?: string;
-    avatarUrl?: string;
-    createdAt: string;
-  } | null;
-  session: any | null;
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
   
-  signUp: (email: string, password: string, username: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  updateProfile: (data: any) => Promise<void>;
-  setSession: (session: any) => void;
-  clearError: () => void;
+  // Actions
+  login: (email: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<void>;
+  logout: () => void;
+  updateUser: (userData: Partial<User>) => Promise<void>;
 }
 
+// This is a mock implementation since we don't have Supabase yet
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      session: null,
+      token: null,
+      isAuthenticated: false,
       isLoading: false,
       error: null,
       
-      signUp: async (email, password, username) => {
+      login: async (email, password) => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
-          const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: { data: { username } }
-          });
-          
-          if (error) throw error;
-          
-          if (data.user) {
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .insert({
-                id: data.user.id,
-                username,
-                email,
-                created_at: new Date().toISOString(),
-              });
-              
-            if (profileError) throw profileError;
+          // Mock login - in real app, this would call Supabase auth.signIn
+          if (email === 'test@example.com' && password === 'password') {
+            const mockUser: User = {
+              id: '1',
+              username: 'User..',
+              email: 'test@example.com',
+              phone: '+1234567890',
+              createdAt: new Date().toISOString(),
+            };
             
-            set({
-              user: {
-                id: data.user.id,
-                email: data.user.email!,
-                username,
-                createdAt: new Date().toISOString(),
-              },
-              session: data.session,
+            set({ 
+              user: mockUser,
+              token: 'mock-token',
+              isAuthenticated: true,
+              isLoading: false 
             });
+          } else {
+            throw new Error('Invalid credentials');
           }
-        } catch (error: any) {
-          set({ error: error.message });
-        } finally {
-          set({ isLoading: false });
-        }
-      },
-      
-      signIn: async (email, password) => {
-        try {
-          set({ isLoading: true, error: null });
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Login failed',
+            isLoading: false 
           });
-          
-          if (error) throw error;
-          
-          if (data.user) {
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', data.user.id)
-              .single();
-              
-            if (profileError) throw profileError;
-            
-            set({
-              user: {
-                id: data.user.id,
-                email: data.user.email!,
-                username: profileData.username,
-                phone: profileData.phone,
-                age: profileData.age,
-                bloodGroup: profileData.blood_group,
-                avatarUrl: profileData.avatar_url,
-                createdAt: profileData.created_at,
-              },
-              session: data.session,
-            });
-          }
-        } catch (error: any) {
-          set({ error: error.message });
-        } finally {
-          set({ isLoading: false });
         }
       },
       
-      signOut: async () => {
+      register: async (username, email, password) => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
-          const { error } = await supabase.auth.signOut();
-          if (error) throw error;
-          set({ user: null, session: null });
-        } catch (error: any) {
-          set({ error: error.message });
-        } finally {
-          set({ isLoading: false });
+          // Mock registration - in real app, this would call Supabase auth.signUp
+          const mockUser: User = {
+            id: '1',
+            username,
+            email,
+            createdAt: new Date().toISOString(),
+          };
+          
+          set({ 
+            user: mockUser,
+            token: 'mock-token',
+            isAuthenticated: true,
+            isLoading: false 
+          });
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Registration failed',
+            isLoading: false 
+          });
         }
       },
       
-      updateProfile: async (data) => {
+      logout: () => {
+        // In real app, this would call Supabase auth.signOut
+        set({ 
+          user: null,
+          token: null,
+          isAuthenticated: false 
+        });
+      },
+      
+      updateUser: async (userData) => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
-          const user = get().user;
-          if (!user) throw new Error('User not authenticated');
+          // Mock update - in real app, this would call Supabase
+          const currentUser = get().user;
+          if (!currentUser) throw new Error('No user logged in');
           
-          const { error } = await supabase
-            .from('profiles')
-            .update({
-              username: data.username,
-              phone: data.phone,
-              age: data.age,
-              blood_group: data.bloodGroup,
-              avatar_url: data.avatarUrl,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', user.id);
-            
-          if (error) throw error;
+          const updatedUser = {
+            ...currentUser,
+            ...userData,
+          };
           
-          set({ user: { ...user, ...data } });
-        } catch (error: any) {
-          set({ error: error.message });
-        } finally {
-          set({ isLoading: false });
+          set({ 
+            user: updatedUser,
+            isLoading: false 
+          });
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Update failed',
+            isLoading: false 
+          });
         }
-      },
-      
-      setSession: (session) => {
-        set({ session });
-      },
-      
-      clearError: () => {
-        set({ error: null });
       },
     }),
     {

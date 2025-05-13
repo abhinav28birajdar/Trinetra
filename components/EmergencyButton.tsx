@@ -2,45 +2,39 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, Dimensions } from 'react-native';
 import Colors from '@/constants/colors';
 
-interface SOSButtonProps {
+interface EmergencyButtonProps {
+  title: string;
   onPress: () => void;
 }
 
 const { width } = Dimensions.get('window');
-const buttonSize = width * 0.6;
+const buttonWidth = width * 0.9;
 
-export default function SOSButton({ onPress }: SOSButtonProps) {
+export default function EmergencyButton({ title, onPress }: EmergencyButtonProps) {
   return (
     <TouchableOpacity 
       style={styles.button}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
-      <Text style={styles.buttonText}>TAP</Text>
+      <Text style={styles.buttonText}>{title}</Text>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    width: buttonSize,
-    height: buttonSize,
-    borderRadius: buttonSize / 2,
-    backgroundColor: Colors.primaryDark,
+    width: buttonWidth,
+    height: 60,
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
+    marginVertical: 8,
   },
   buttonText: {
     color: Colors.text.light,
-    fontSize: 40,
+    fontSize: 18,
     fontWeight: 'bold',
   },
 });

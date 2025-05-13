@@ -1,109 +1,93 @@
 import React from 'react';
-import { 
-  View, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Dimensions,
-} from 'react-native';
-import { Home, MapPin, Users, User } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
-import Colors from '@/constants/colors';
-import SOSButton from './SOSButton';
+import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import { useRouter, usePathname } from 'expo-router';
+import { Home, Globe, Users, User } from 'lucide-react-native';
+import { useColors } from '@/constants/colors';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
-const { width } = Dimensions.get('window');
-
-interface TabBarProps {
-  state: any;
-  descriptors: any;
-  navigation: any;
+interface TabBarProps extends BottomTabBarProps {
+  isDarkMode?: boolean;
 }
 
-const TabBar: React.FC<TabBarProps> = ({ state, descriptors, navigation }) => {
+export default function TabBar({ isDarkMode = false, ...props }: TabBarProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const Colors = useColors();
 
-  const handleSOSPress = () => {
-    router.push('/sos');
-  };
-
-  const renderIcon = (routeName: string, isFocused: boolean) => {
-    const color = isFocused ? Colors.primary : Colors.textLight;
-    
-    switch (routeName) {
-      case 'home':
-        return <Home size={24} color={color} />;
-      case 'location':
-        return <MapPin size={24} color={color} />;
-      case 'community':
-        return <Users size={24} color={color} />;
-      case 'profile':
-        return <User size={24} color={color} />;
-      default:
-        return <Home size={24} color={color} />;
-    }
-  };
+  const tabs = [
+    { name: 'home', icon: Home, label: '', route: '/' },
+    { name: 'location', icon: Globe, label: '', route: '/location' },
+    { name: 'sos', label: 'SOS', route: '/sos' },
+    { name: 'community', icon: Users, label: '', route: '/community' },
+    { name: 'profile', icon: User, label: '', route: '/profile' },
+  ];
 
   return (
-    <View style={styles.container}>
-      {state.routes.map((route: any, index: number) => {
-        const { options } = descriptors[route.key];
-        const label = options.tabBarLabel || options.title || route.name;
-        const isFocused = state.index === index;
-
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-          }
-        };
-
+    <View style={[styles.container, { backgroundColor: Colors.primary }]}>
+      {tabs.map((tab) => {
+        const isActive = pathname === tab.route;
+        
+        // Special case for SOS button
+        if (tab.name === 'sos') {
+          return (
+            <TouchableOpacity
+              key={tab.name}
+              style={[styles.sosButton, { borderColor: Colors.text.light }]}
+              onPress={() => router.push(tab.route)}
+            >
+              <Text style={styles.sosText}>{tab.label}</Text>
+            </TouchableOpacity>
+          );
+        }
+        
         return (
           <TouchableOpacity
-            key={route.key}
-            accessibilityRole="button"
-            accessibilityState={isFocused ? { selected: true } : {}}
-            accessibilityLabel={options.tabBarAccessibilityLabel}
-            testID={options.tabBarTestID}
-            onPress={onPress}
+            key={tab.name}
             style={styles.tab}
+            onPress={() => router.push(tab.route)}
           >
-            {renderIcon(route.name, isFocused)}
+            {tab.icon && (
+              <tab.icon
+                size={24}
+                color={isActive ? Colors.text.light : '#E0E0E0'}
+              />
+            )}
           </TouchableOpacity>
         );
       })}
-      <View style={styles.sosButtonContainer}>
-        <SOSButton onPress={handleSOSPress} />
-      </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
     height: 60,
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   tab: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sosButtonContainer: {
-    position: 'absolute',
-    top: -20,
-    left: (width - 70) / 2,
-    zIndex: 1,
+  sosButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#6A0DAD',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -20,
+    borderWidth: 4,
+  },
+  sosText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
-
-export default TabBar;

@@ -1,20 +1,61 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '@/lib/supabase';
 import { Contact } from '@/types';
+import * as Haptics from 'expo-haptics';
+import { Platform } from 'react-native';
 
 interface ContactsState {
   contacts: Contact[];
   isLoading: boolean;
   error: string | null;
   
+  // Actions
   fetchContacts: () => Promise<void>;
   addContact: (contact: Omit<Contact, 'id' | 'userId' | 'createdAt'>) => Promise<void>;
-  updateContact: (id: string, contact: Partial<Contact>) => Promise<void>;
+  updateContact: (id: string, contactData: Partial<Contact>) => Promise<void>;
   deleteContact: (id: string) => Promise<void>;
-  clearError: () => void;
 }
+
+// Mock data
+const mockContacts: Contact[] = [
+  {
+    id: '1',
+    userId: '1',
+    name: 'Father',
+    phone: '+1234567890',
+    relationship: 'Family',
+    isEmergencyContact: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    userId: '1',
+    name: 'Mother',
+    phone: '+0987654321',
+    relationship: 'Family',
+    isEmergencyContact: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    userId: '1',
+    name: 'Sister',
+    phone: '+1122334455',
+    relationship: 'Family',
+    isEmergencyContact: false,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '4',
+    userId: '1',
+    name: 'Uncle',
+    phone: '+5566778899',
+    relationship: 'Family',
+    isEmergencyContact: false,
+    createdAt: new Date().toISOString(),
+  },
+];
 
 export const useContactsStore = create<ContactsState>()(
   persist(
@@ -24,136 +65,100 @@ export const useContactsStore = create<ContactsState>()(
       error: null,
       
       fetchContacts: async () => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
-          
-          const { data: session } = await supabase.auth.getSession();
-          if (!session.session) throw new Error('Not authenticated');
-          
-          const { data, error } = await supabase
-            .from('contacts')
-            .select('*')
-            .order('created_at', { ascending: false });
-            
-          if (error) throw error;
+          // Mock fetch - in real app, this would call Supabase
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           set({ 
-            contacts: data.map(item => ({
-              id: item.id,
-              userId: item.user_id,
-              name: item.name,
-              phone: item.phone,
-              relationship: item.relationship,
-              isEmergency: item.is_emergency,
-              createdAt: item.created_at,
-            })) 
+            contacts: mockContacts,
+            isLoading: false 
           });
-        } catch (error: any) {
-          set({ error: error.message });
-        } finally {
-          set({ isLoading: false });
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to fetch contacts',
+            isLoading: false 
+          });
         }
       },
       
-      addContact: async (contact) => {
+      addContact: async (contactData) => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
-          
-          const { data: session } = await supabase.auth.getSession();
-          if (!session.session) throw new Error('Not authenticated');
-          
-          const { data, error } = await supabase
-            .from('contacts')
-            .insert({
-              user_id: session.session.user.id,
-              name: contact.name,
-              phone: contact.phone,
-              relationship: contact.relationship,
-              is_emergency: contact.isEmergency,
-              created_at: new Date().toISOString(),
-            })
-            .select()
-            .single();
-            
-          if (error) throw error;
-          
+          // Mock add - in real app, this would call Supabase
           const newContact: Contact = {
-            id: data.id,
-            userId: data.user_id,
-            name: data.name,
-            phone: data.phone,
-            relationship: data.relationship,
-            isEmergency: data.is_emergency,
-            createdAt: data.created_at,
+            id: Date.now().toString(),
+            userId: '1', // Mock user ID
+            createdAt: new Date().toISOString(),
+            ...contactData,
           };
           
-          set({ contacts: [newContact, ...get().contacts] });
-        } catch (error: any) {
-          set({ error: error.message });
-        } finally {
-          set({ isLoading: false });
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          if (Platform.OS !== 'web') {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
+          
+          set({ 
+            contacts: [...get().contacts, newContact],
+            isLoading: false 
+          });
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to add contact',
+            isLoading: false 
+          });
         }
       },
       
-      updateContact: async (id, contact) => {
+      updateContact: async (id, contactData) => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
+          // Mock update - in real app, this would call Supabase
+          const updatedContacts = get().contacts.map(contact => 
+            contact.id === id ? { ...contact, ...contactData } : contact
+          );
           
-          const { data: session } = await supabase.auth.getSession();
-          if (!session.session) throw new Error('Not authenticated');
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 500));
           
-          const { error } = await supabase
-            .from('contacts')
-            .update({
-              name: contact.name,
-              phone: contact.phone,
-              relationship: contact.relationship,
-              is_emergency: contact.isEmergency,
-            })
-            .eq('id', id)
-            .eq('user_id', session.session.user.id);
-            
-          if (error) throw error;
-          
-          set({
-            contacts: get().contacts.map(c => 
-              c.id === id ? { ...c, ...contact } : c
-            ),
+          set({ 
+            contacts: updatedContacts,
+            isLoading: false 
           });
-        } catch (error: any) {
-          set({ error: error.message });
-        } finally {
-          set({ isLoading: false });
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to update contact',
+            isLoading: false 
+          });
         }
       },
       
       deleteContact: async (id) => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
+          // Mock delete - in real app, this would call Supabase
+          const filteredContacts = get().contacts.filter(contact => contact.id !== id);
           
-          const { data: session } = await supabase.auth.getSession();
-          if (!session.session) throw new Error('Not authenticated');
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 500));
           
-          const { error } = await supabase
-            .from('contacts')
-            .delete()
-            .eq('id', id)
-            .eq('user_id', session.session.user.id);
-            
-          if (error) throw error;
+          if (Platform.OS !== 'web') {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
           
-          set({
-            contacts: get().contacts.filter(c => c.id !== id),
+          set({ 
+            contacts: filteredContacts,
+            isLoading: false 
           });
-        } catch (error: any) {
-          set({ error: error.message });
-        } finally {
-          set({ isLoading: false });
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to delete contact',
+            isLoading: false 
+          });
         }
-      },
-      
-      clearError: () => {
-        set({ error: null });
       },
     }),
     {

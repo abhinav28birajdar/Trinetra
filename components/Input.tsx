@@ -1,143 +1,119 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   View, 
   TextInput, 
   Text, 
   StyleSheet, 
-  TextInputProps,
+  StyleProp, 
   ViewStyle,
-  TouchableOpacity,
+  TextStyle,
+  KeyboardTypeOptions
 } from 'react-native';
-import { Eye, EyeOff, User, Mail, Lock, Phone } from 'lucide-react-native';
-import Colors from '@/constants/colors';
+import { useColors } from '@/constants/colors';
 
-interface InputProps extends TextInputProps {
+interface InputProps {
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
   label?: string;
   error?: string;
-  leftIcon?: 'user' | 'mail' | 'lock' | 'phone' | null;
-  containerStyle?: ViewStyle;
-  isPassword?: boolean;
+  secureTextEntry?: boolean;
+  keyboardType?: KeyboardTypeOptions;
+  style?: StyleProp<ViewStyle>;
+  inputStyle?: StyleProp<TextStyle>;
+  icon?: React.ReactNode;
+  multiline?: boolean;
+  numberOfLines?: number;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  isDarkMode?: boolean;
 }
 
-const Input: React.FC<InputProps> = ({
+export default function Input({
+  value,
+  onChangeText,
+  placeholder,
   label,
   error,
-  leftIcon,
-  containerStyle,
-  isPassword = false,
-  ...props
-}) => {
-  const [secureTextEntry, setSecureTextEntry] = useState(isPassword);
-
-  const renderLeftIcon = () => {
-    if (!leftIcon) return null;
-
-    const iconProps = {
-      size: 20,
-      color: Colors.primary,
-      style: styles.leftIcon
-    };
-
-    switch (leftIcon) {
-      case 'user':
-        return <User {...iconProps} />;
-      case 'mail':
-        return <Mail {...iconProps} />;
-      case 'lock':
-        return <Lock {...iconProps} />;
-      case 'phone':
-        return <Phone {...iconProps} />;
-      default:
-        return null;
-    }
-  };
-
-  const toggleSecureEntry = () => {
-    setSecureTextEntry(!secureTextEntry);
-  };
-
+  secureTextEntry = false,
+  keyboardType = 'default',
+  style,
+  inputStyle,
+  icon,
+  multiline = false,
+  numberOfLines = 1,
+  autoCapitalize = 'none',
+  isDarkMode = false,
+}: InputProps) {
+  const Colors = useColors();
+  
   return (
-    <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+    <View style={[styles.container, style]}>
+      {label && <Text style={[styles.label, { color: Colors.primary }]}>{label}</Text>}
       <View style={[
-        styles.inputContainer,
-        error ? styles.inputError : null,
+        styles.inputContainer, 
+        { 
+          borderColor: error ? Colors.status.error : '#ddd',
+          backgroundColor: isDarkMode ? Colors.background.secondary : Colors.background.primary
+        },
+        error ? styles.inputError : null
       ]}>
-        {renderLeftIcon()}
+        {icon && <View style={styles.iconContainer}>{icon}</View>}
         <TextInput
-          style={[
-            styles.input,
-            leftIcon ? styles.inputWithLeftIcon : null,
-            isPassword ? styles.inputWithRightIcon : null,
-          ]}
-          placeholderTextColor={Colors.textLight}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#999"
           secureTextEntry={secureTextEntry}
-          {...props}
+          keyboardType={keyboardType}
+          style={[
+            styles.input, 
+            { color: Colors.text.dark },
+            icon ? styles.inputWithIcon : null, 
+            inputStyle
+          ]}
+          multiline={multiline}
+          numberOfLines={numberOfLines}
+          autoCapitalize={autoCapitalize}
         />
-        {isPassword && (
-          <TouchableOpacity 
-            style={styles.rightIcon} 
-            onPress={toggleSecureEntry}
-          >
-            {secureTextEntry ? (
-              <Eye size={20} color={Colors.primary} />
-            ) : (
-              <EyeOff size={20} color={Colors.primary} />
-            )}
-          </TouchableOpacity>
-        )}
       </View>
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {error && <Text style={[styles.errorText, { color: Colors.status.error }]}>{error}</Text>}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
+    width: '100%',
   },
   label: {
     marginBottom: 8,
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.primary,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
     borderRadius: 8,
-    backgroundColor: Colors.white,
+  },
+  inputError: {
+    borderColor: '#F44336',
   },
   input: {
     flex: 1,
-    height: 50,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: Colors.text,
   },
-  inputWithLeftIcon: {
+  inputWithIcon: {
     paddingLeft: 8,
   },
-  inputWithRightIcon: {
-    paddingRight: 40,
-  },
-  leftIcon: {
-    marginLeft: 12,
-  },
-  rightIcon: {
-    position: 'absolute',
-    right: 12,
-  },
-  inputError: {
-    borderColor: Colors.error,
+  iconContainer: {
+    paddingLeft: 12,
   },
   errorText: {
-    color: Colors.error,
     fontSize: 12,
     marginTop: 4,
   },
 });
-
-export default Input;

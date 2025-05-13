@@ -6,47 +6,35 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import { ErrorBoundary } from "./error-boundary";
 import { useAuthStore } from "@/store/authStore";
-import { supabase } from "@/lib/supabase";
 
 export const unstable_settings = {
-  initialRouteName: "(auth)",
+  initialRouteName: "index",
 };
 
+// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     ...FontAwesome.font,
   });
-  const { setSession } = useAuthStore();
 
   useEffect(() => {
-    if (error) throw error;
+    if (error) {
+      console.error(error);
+      throw error;
+    }
   }, [error]);
 
   useEffect(() => {
-    if (loaded) SplashScreen.hideAsync();
+    if (loaded) {
+      SplashScreen.hideAsync();
+    }
   }, [loaded]);
 
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (event, session) => {
-          setSession(session);
-        }
-      );
-
-      return () => subscription.unsubscribe();
-    } else {
-      const checkSession = async () => {
-        const { data } = await supabase.auth.getSession();
-        setSession(data.session);
-      };
-      checkSession();
-    }
-  }, []);
-
-  if (!loaded) return null;
+  if (!loaded) {
+    return null;
+  }
 
   return (
     <ErrorBoundary>
@@ -56,10 +44,33 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(app)" options={{ headerShown: false }} />
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: '#FFFFFF' },
+      }}
+    >
+      {isAuthenticated ? (
+        <>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="settings" options={{ presentation: 'card' }} />
+          <Stack.Screen name="contacts" options={{ presentation: 'card' }} />
+          <Stack.Screen name="location-share" options={{ presentation: 'card' }} />
+          <Stack.Screen name="sos" options={{ presentation: 'card' }} />
+          <Stack.Screen name="community" options={{ presentation: 'card' }} />
+          <Stack.Screen name="profile" options={{ presentation: 'card' }} />
+          <Stack.Screen name="call" options={{ presentation: 'fullScreenModal' }} />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="register" options={{ headerShown: false }} />
+        </>
+      )}
     </Stack>
   );
 }

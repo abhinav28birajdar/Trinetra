@@ -1,7 +1,7 @@
 export interface User {
   id: string;
-  email: string;
   username: string;
+  email: string;
   phone?: string;
   age?: string;
   bloodGroup?: string;
@@ -15,7 +15,7 @@ export interface Contact {
   name: string;
   phone: string;
   relationship: string;
-  isEmergency: boolean;
+  isEmergencyContact: boolean;
   createdAt: string;
 }
 
@@ -27,15 +27,8 @@ export interface Message {
   createdAt: string;
 }
 
-export interface Location {
+export interface LocationData {
   latitude: number;
   longitude: number;
-  timestamp: number;
-}
-
-export interface EmergencyService {
-  id: string;
-  name: string;
-  number: string;
-  type: 'police' | 'ambulance' | 'fire' | 'other';
+  timestamp: string;
 }

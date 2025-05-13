@@ -4,57 +4,68 @@ import {
   Text, 
   StyleSheet, 
   ActivityIndicator,
+  StyleProp,
   ViewStyle,
-  TextStyle,
-  TouchableOpacityProps
+  TextStyle
 } from 'react-native';
-import Colors from '@/constants/colors';
+import { useColors } from '@/constants/colors';
 
-interface ButtonProps extends TouchableOpacityProps {
+interface ButtonProps {
   title: string;
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger';
+  onPress: () => void;
+  variant?: 'primary' | 'secondary' | 'danger' | 'success';
   size?: 'small' | 'medium' | 'large';
-  isLoading?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  loading?: boolean;
+  disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
+  isDarkMode?: boolean;
 }
 
-const Button: React.FC<ButtonProps> = ({
+export default function Button({
   title,
+  onPress,
   variant = 'primary',
   size = 'medium',
-  isLoading = false,
+  loading = false,
+  disabled = false,
   style,
   textStyle,
-  ...props
-}) => {
+  isDarkMode = false,
+}: ButtonProps) {
+  const Colors = useColors();
+  
   const getButtonStyle = () => {
     switch (variant) {
       case 'primary':
-        return styles.primaryButton;
+        return { backgroundColor: Colors.button.primary };
       case 'secondary':
-        return styles.secondaryButton;
-      case 'outline':
-        return styles.outlineButton;
+        return { 
+          backgroundColor: isDarkMode ? Colors.button.secondary : Colors.button.secondary,
+          borderWidth: 1,
+          borderColor: Colors.primary,
+        };
       case 'danger':
-        return styles.dangerButton;
+        return { backgroundColor: Colors.button.danger };
+      case 'success':
+        return { backgroundColor: Colors.button.success };
       default:
-        return styles.primaryButton;
+        return { backgroundColor: Colors.button.primary };
     }
   };
 
   const getTextStyle = () => {
     switch (variant) {
       case 'primary':
-        return styles.primaryText;
+        return { color: Colors.text.light };
       case 'secondary':
-        return styles.secondaryText;
-      case 'outline':
-        return styles.outlineText;
+        return { color: Colors.text.secondary };
       case 'danger':
-        return styles.dangerText;
+        return { color: Colors.text.light };
+      case 'success':
+        return { color: Colors.text.light };
       default:
-        return styles.primaryText;
+        return { color: Colors.text.light };
     }
   };
 
@@ -71,49 +82,26 @@ const Button: React.FC<ButtonProps> = ({
     }
   };
 
-  const getTextSizeStyle = () => {
-    switch (size) {
-      case 'small':
-        return styles.smallText;
-      case 'medium':
-        return styles.mediumText;
-      case 'large':
-        return styles.largeText;
-      default:
-        return styles.mediumText;
-    }
-  };
-
   return (
     <TouchableOpacity
       style={[
         styles.button,
         getButtonStyle(),
         getSizeStyle(),
-        isLoading && styles.disabledButton,
+        disabled && styles.disabledButton,
         style,
       ]}
-      disabled={isLoading || props.disabled}
-      {...props}
+      onPress={onPress}
+      disabled={disabled || loading}
     >
-      {isLoading ? (
-        <ActivityIndicator 
-          color={variant === 'outline' ? Colors.primary : Colors.white} 
-          size="small" 
-        />
+      {loading ? (
+        <ActivityIndicator color={variant === 'secondary' ? Colors.primary : Colors.text.light} />
       ) : (
-        <Text style={[
-          styles.text,
-          getTextStyle(),
-          getTextSizeStyle(),
-          textStyle,
-        ]}>
-          {title}
-        </Text>
+        <Text style={[styles.buttonText, getTextStyle(), textStyle]}>{title}</Text>
       )}
     </TouchableOpacity>
   );
-};
+}
 
 const styles = StyleSheet.create({
   button: {
@@ -121,59 +109,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  primaryButton: {
-    backgroundColor: Colors.primary,
-  },
-  secondaryButton: {
-    backgroundColor: Colors.secondary,
-  },
-  outlineButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  dangerButton: {
-    backgroundColor: Colors.error,
-  },
   disabledButton: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
   smallButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
   mediumButton: {
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
   },
   largeButton: {
     paddingVertical: 16,
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
   },
-  text: {
-    fontWeight: '600',
-  },
-  primaryText: {
-    color: Colors.white,
-  },
-  secondaryText: {
-    color: Colors.primary,
-  },
-  outlineText: {
-    color: Colors.primary,
-  },
-  dangerText: {
-    color: Colors.white,
-  },
-  smallText: {
-    fontSize: 12,
-  },
-  mediumText: {
+  buttonText: {
+    fontWeight: 'bold',
     fontSize: 16,
   },
-  largeText: {
-    fontSize: 18,
-  },
 });
-
-export default Button;
