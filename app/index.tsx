@@ -9,9 +9,15 @@ export default function WelcomeScreen() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   
+  // Using a timeout to ensure layout is fully mounted before navigation
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/(tabs)');
+      // Add a small delay to ensure root layout is fully mounted
+      const timer = setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 100); 
+      
+      return () => clearTimeout(timer);
     }
   }, [isAuthenticated]);
 
@@ -35,13 +41,13 @@ export default function WelcomeScreen() {
         
         <View style={styles.buttonContainer}>
           <Button 
-            title="Login" 
-            onPress={() => router.push('/login')} 
+            title="Login"
+            onPress={() => router.push('/login')}
             style={styles.button}
           />
           <Button 
-            title="Register" 
-            onPress={() => router.push('/register')} 
+            title="Register"
+            onPress={() => router.push('/register')}
             variant="secondary"
             style={styles.button}
           />

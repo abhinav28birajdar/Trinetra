@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Message } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 interface MessageState {
   messages: Message[];
@@ -11,24 +12,6 @@ interface MessageState {
   sendMessage: (content: string) => Promise<void>;
 }
 
-// Mock data
-const mockMessages: Message[] = [
-  {
-    id: '1',
-    userId: '2',
-    username: 'User 1',
-    content: 'New update',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    userId: '3',
-    username: 'User 2',
-    content: 'Hii Girls',
-    createdAt: new Date().toISOString(),
-  },
-];
-
 export const useMessageStore = create<MessageState>((set, get) => ({
   messages: [],
   isLoading: false,
@@ -37,12 +20,21 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   fetchMessages: async () => {
     set({ isLoading: true, error: null });
     try {
-      // Mock fetch - in real app, this would call Supabase
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
       
       set({ 
-        messages: mockMessages,
+        messages: data.map(message => ({
+          id: message.id,
+          userId: message.user_id,
+          username: message.username,
+          content: message.content,
+          createdAt: message.created_at
+        })),
         isLoading: false 
       });
     } catch (error) {
@@ -56,17 +48,38 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   sendMessage: async (content) => {
     set({ isLoading: true, error: null });
     try {
-      // Mock send - in real app, this would call Supabase
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        userId: '1', // Current user
-        username: 'User..', // Current user
-        content,
-        createdAt: new Date().toISOString(),
-      };
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) throw new Error('Not authenticated');
+      
+      const user = session.data.session.user;
+      const profile = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+
+      if (profile.error) throw profile.error;
+      
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          user_id: user.id,
+          username: profile.data.username,
+          content
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
       
       set({ 
-        messages: [...get().messages, newMessage],
+        messages: [{
+          id: data.id,
+          userId: data.user_id,
+          username: data.username,
+          content: data.content,
+          createdAt: data.created_at
+        }, ...get().messages],
         isLoading: false 
       });
     } catch (error) {

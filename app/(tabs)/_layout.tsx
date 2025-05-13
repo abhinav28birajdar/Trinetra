@@ -4,10 +4,22 @@ import { Home, Globe, Users, User } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
 import { useColors } from '@/constants/colors';
 import TabBar from '@/components/TabBar';
+import { useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { useAuthStore } from '@/store/authStore';
 
 export default function TabLayout() {
   const { isDarkMode } = useThemeStore();
   const Colors = useColors();
+  const router = useRouter();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace('/');
+    }
+  }, [isAuthenticated]);
 
   return (
     <Tabs

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '@/store/authStore';
+import { supabase } from '@/lib/supabase';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Colors from '@/constants/colors';
@@ -9,28 +9,64 @@ import { User, Mail, Lock } from 'lucide-react-native';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { register, isLoading, error } = useAuthStore();
-  
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [validationError, setValidationError] = useState('');
-  
+  const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
   const handleRegister = async () => {
-    // Validate inputs
-    if (!username || !email || !password || !confirmPassword) {
-      setValidationError('All fields are required');
+    if (!email || !password || !confirmPassword || !username) {
+      setError('Please fill in all fields');
       return;
     }
-    
+
     if (password !== confirmPassword) {
-      setValidationError('Passwords do not match');
+      setError('Passwords do not match');
       return;
     }
-    
-    setValidationError('');
-    await register(username, email, password);
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+          }
+        }
+      });
+
+      if (signUpError) {
+        throw signUpError;
+      }
+
+      if (!data.user) {
+        throw new Error('Registration failed - no user returned');
+      }
+
+      Alert.alert(
+        'Registration Successful',
+        'Please check your email to confirm your account',
+        [
+          { text: 'OK', onPress: () => router.replace('/login') }
+        ]
+      );
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Registration failed');
+      Alert.alert('Registration Error', error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -45,14 +81,15 @@ export default function RegisterScreen() {
         </View>
         
         <View style={styles.formContainer}>
-          <Text style={styles.title}>Register</Text>
-          <Text style={styles.subtitle}>Create your account</Text>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Join our community</Text>
           
           <View style={styles.inputContainer}>
             <Input
               value={username}
               onChangeText={setUsername}
               placeholder="Username"
+              autoCapitalize="none"
               icon={<User size={20} color={Colors.primary} />}
               style={styles.input}
             />
@@ -62,6 +99,7 @@ export default function RegisterScreen() {
               onChangeText={setEmail}
               placeholder="Email address"
               keyboardType="email-address"
+              autoCapitalize="none"
               icon={<Mail size={20} color={Colors.primary} />}
               style={styles.input}
             />
@@ -78,24 +116,22 @@ export default function RegisterScreen() {
             <Input
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              placeholder="Confirm password"
+              placeholder="Confirm Password"
               secureTextEntry
               icon={<Lock size={20} color={Colors.primary} />}
               style={styles.input}
             />
             
-            {(validationError || error) && (
-              <Text style={styles.errorText}>{validationError || error}</Text>
-            )}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
             
             <Text style={styles.termsText}>
-              By registering, you are agreeing to our Terms of use and Privacy Policy
+              By registering, you agree to our Terms of Service and Privacy Policy
             </Text>
             
             <Button 
-              title="REGISTER" 
+              title="Register" 
               onPress={handleRegister} 
-              loading={isLoading}
+              loading={loading}
               style={styles.button}
             />
             
@@ -156,6 +192,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: Colors.status.error,
     marginBottom: 16,
+    textAlign: 'center',
   },
   termsText: {
     fontSize: 12,

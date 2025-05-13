@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { LocationData } from '@/types';
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
+import { supabase } from '@/lib/supabase';
 
 interface LocationState {
   currentLocation: LocationData | null;
@@ -13,6 +14,7 @@ interface LocationState {
   stopTracking: () => void;
   getCurrentLocation: () => Promise<LocationData | null>;
   shareLocation: (contactIds: string[]) => Promise<void>;
+  saveLocation: (location: LocationData) => Promise<void>;
 }
 
 export const useLocationStore = create<LocationState>((set, get) => ({
@@ -22,14 +24,12 @@ export const useLocationStore = create<LocationState>((set, get) => ({
   
   startTracking: async () => {
     try {
-      // Request permissions
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         set({ error: 'Permission to access location was denied' });
         return;
       }
       
-      // Start watching position
       if (Platform.OS !== 'web') {
         Location.watchPositionAsync(
           {
@@ -44,10 +44,10 @@ export const useLocationStore = create<LocationState>((set, get) => ({
               timestamp: new Date().toISOString(),
             };
             set({ currentLocation: locationData });
+            get().saveLocation(locationData); // Auto-save when tracking
           }
         );
       } else {
-        // Web fallback
         navigator.geolocation.watchPosition(
           (position) => {
             const locationData: LocationData = {
@@ -56,6 +56,7 @@ export const useLocationStore = create<LocationState>((set, get) => ({
               timestamp: new Date().toISOString(),
             };
             set({ currentLocation: locationData });
+            get().saveLocation(locationData); // Auto-save when tracking
           },
           (error) => {
             set({ error: error.message });
@@ -74,20 +75,17 @@ export const useLocationStore = create<LocationState>((set, get) => ({
   },
   
   stopTracking: () => {
-    // In a real app, you would unsubscribe from location updates
     set({ isTracking: false });
   },
   
   getCurrentLocation: async () => {
     try {
-      // Request permissions
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         set({ error: 'Permission to access location was denied' });
         return null;
       }
       
-      // Get current position
       const location = await Location.getCurrentPositionAsync({});
       const locationData: LocationData = {
         latitude: location.coords.latitude,
@@ -112,9 +110,21 @@ export const useLocationStore = create<LocationState>((set, get) => ({
         throw new Error('Could not get current location');
       }
       
-      // In a real app, this would send the location to the specified contacts
-      // through Supabase or another service
-      console.log(`Sharing location with contacts: ${contactIds.join(', ')}`);
+      // Save location first
+      await get().saveLocation(location);
+      
+      // Create notifications for each contact
+      const { error } = await supabase
+        .from('notifications')
+        .insert(contactIds.map(async contactId => ({
+          user_id: (await supabase.auth.getSession()).data.session?.user.id,
+          contact_id: contactId,
+          message: 'Shared my location with you',
+          location_data: location,
+          type: 'location_share'
+        })));
+
+      if (error) throw error;
       
       set({ error: null });
     } catch (error) {
@@ -123,4 +133,24 @@ export const useLocationStore = create<LocationState>((set, get) => ({
       });
     }
   },
+  
+  saveLocation: async (location) => {
+    try {
+      const userId = (await supabase.auth.getSession()).data.session?.user.id;
+      if (!userId) return;
+      
+      const { error } = await supabase
+        .from('user_locations')
+        .insert({
+          user_id: userId,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          recorded_at: location.timestamp
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Failed to save location:', error);
+    }
+  }
 }));
