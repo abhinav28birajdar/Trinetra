@@ -13,7 +13,7 @@ interface LocationState {
   startTracking: () => Promise<void>;
   stopTracking: () => void;
   getCurrentLocation: () => Promise<LocationData | null>;
-  shareLocation: (contactIds: string[]) => Promise<void>;
+  
   saveLocation: (location: LocationData) => Promise<void>;
 }
 
@@ -103,36 +103,7 @@ export const useLocationStore = create<LocationState>((set, get) => ({
     }
   },
   
-  shareLocation: async (contactIds) => {
-    try {
-      const location = await get().getCurrentLocation();
-      if (!location) {
-        throw new Error('Could not get current location');
-      }
-      
-      // Save location first
-      await get().saveLocation(location);
-      
-      // Create notifications for each contact
-      const { error } = await supabase
-        .from('notifications')
-        .insert(contactIds.map(async contactId => ({
-          user_id: (await supabase.auth.getSession()).data.session?.user.id,
-          contact_id: contactId,
-          message: 'Shared my location with you',
-          location_data: location,
-          type: 'location_share'
-        })));
-
-      if (error) throw error;
-      
-      set({ error: null });
-    } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to share location',
-      });
-    }
-  },
+  
   
   saveLocation: async (location) => {
     try {
@@ -140,12 +111,12 @@ export const useLocationStore = create<LocationState>((set, get) => ({
       if (!userId) return;
       
       const { error } = await supabase
-        .from('user_locations')
+        .from('locations')
         .insert({
           user_id: userId,
           latitude: location.latitude,
           longitude: location.longitude,
-          recorded_at: location.timestamp
+          timestamp: location.timestamp
         });
 
       if (error) throw error;

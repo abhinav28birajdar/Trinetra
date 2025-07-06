@@ -59,11 +59,13 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false 
           });
+          return true;
         } catch (error) {
           set({ 
             error: error instanceof Error ? error.message : 'Login failed',
             isLoading: false 
           });
+          return false;
         }
       },
       
@@ -101,11 +103,13 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: data.session ? true : false,
             isLoading: false 
           });
+          return true;
         } catch (error) {
           set({ 
             error: error instanceof Error ? error.message : 'Registration failed',
             isLoading: false 
           });
+          return false;
         }
       },
       

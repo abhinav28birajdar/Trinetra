@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, Alert, Platform, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
-import { useLocationStore } from '@/store/locationStore';
+import { useSosStore } from '@/store/sosStore';
 import Colors from '@/constants/colors';
 import Header from '@/components/Header';
 import SOSButton from '@/components/SOSButton';
@@ -11,28 +11,26 @@ import * as Haptics from 'expo-haptics';
 export default function SOSScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
-  const { getCurrentLocation } = useLocationStore();
-  const [isActivated, setIsActivated] = useState(false);
+  const { triggerSos, isSosActive, isLoading, error } = useSosStore();
   
   const handleSOSPress = async () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
     
-    setIsActivated(true);
-    
-    // Get current location
-    await getCurrentLocation();
-    
-    // Show alert on web, navigate to location share on mobile
-    if (Platform.OS === 'web') {
+    await triggerSos();
+
+    if (error) {
+      Alert.alert('SOS Error', error);
+    } else if (Platform.OS === 'web') {
       Alert.alert(
         'SOS Activated',
         'Emergency contacts would be notified with your location in a real app.',
-        [{ text: 'OK', onPress: () => setIsActivated(false) }]
+        [{ text: 'OK' }]
       );
     } else {
-      router.push('/location-share');
+      // Optionally navigate or show a success message
+      // router.push('/location-share'); // If you want to show location share after SOS
     }
   };
 
@@ -90,5 +88,15 @@ const styles = StyleSheet.create({
     color: Colors.text.light,
     textAlign: 'center',
     marginBottom: 24,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  loadingText: {
+    color: Colors.text.light,
+    marginLeft: 10,
+    fontSize: 16,
   },
 });

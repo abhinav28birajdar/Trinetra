@@ -47,7 +47,7 @@ export default function ContactsScreen() {
   const handleCallContact = (contact: Contact) => {
     router.push({
       pathname: '/call',
-      params: { number: contact.phone, name: contact.name },
+      params: { number: contact.phone_number, name: contact.name },
     });
   };
   
@@ -81,9 +81,9 @@ export default function ContactsScreen() {
     
     await addContact({
       name: newContactName,
-      phone: newContactPhone,
-      relationship: newContactRelationship || 'Other',
-      isEmergencyContact,
+      phone_number: newContactPhone,
+      relationship: newContactRelationship || null,
+      is_emergency_contact: isEmergencyContact,
     });
     
     // Reset form and close modal

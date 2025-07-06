@@ -11,12 +11,12 @@ export interface User {
 
 export interface Contact {
   id: string;
-  userId: string;
+  user_id: string;
   name: string;
-  phone: string;
-  relationship: string;
-  isEmergencyContact: boolean;
-  createdAt: string;
+  phone_number: string;
+  relationship?: string;
+  is_emergency_contact?: boolean;
+  created_at: string;
 }
 
 export interface Message {

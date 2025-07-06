@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabase';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Colors from '@/constants/colors';
 import { User, Mail, Lock } from 'lucide-react-native';
+import { useAuthStore } from '@/store/authStore';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -13,47 +13,26 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { register, isLoading, error } = useAuthStore();
 
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword || !username) {
-      setError('Please fill in all fields');
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
 
-    setLoading(true);
-    setError('');
-
-    try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-          }
-        }
-      });
-
-      if (signUpError) {
-        throw signUpError;
-      }
-
-      if (!data.user) {
-        throw new Error('Registration failed - no user returned');
-      }
-
+    const success = await register(username, email, password);
+    if (success) {
       Alert.alert(
         'Registration Successful',
         'Please check your email to confirm your account',
@@ -61,11 +40,8 @@ export default function RegisterScreen() {
           { text: 'OK', onPress: () => router.replace('/login') }
         ]
       );
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Registration failed');
-      Alert.alert('Registration Error', error instanceof Error ? error.message : 'An error occurred');
-    } finally {
-      setLoading(false);
+    } else {
+      Alert.alert('Registration Error', error || 'An unknown error occurred');
     }
   };
 
@@ -122,7 +98,7 @@ export default function RegisterScreen() {
               style={styles.input}
             />
             
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {error && <Text style={styles.errorText}>{error}</Text>}
             
             <Text style={styles.termsText}>
               By registering, you agree to our Terms of Service and Privacy Policy
@@ -131,7 +107,7 @@ export default function RegisterScreen() {
             <Button 
               title="Register" 
               onPress={handleRegister} 
-              loading={loading}
+              loading={isLoading}
               style={styles.button}
             />
             

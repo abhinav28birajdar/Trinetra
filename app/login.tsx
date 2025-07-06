@@ -1,45 +1,30 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabase';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Colors from '@/constants/colors';
 import { Mail, Lock } from 'lucide-react-native';
 import { Stack } from 'expo-router';
+import { useAuthStore } from '@/store/authStore';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { login, isLoading, error } = useAuthStore();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('Please fill in all fields');
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    setLoading(true);
-    setError('');
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      router.replace('/(tabs)/home');
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Login failed');
-      Alert.alert('Login Error', error instanceof Error ? error.message : 'An error occurred');
-    } finally {
-      setLoading(false);
+    const success = await login(email, password);
+    if (success) {
+      router.replace('/(tabs)/profile');
+    } else {
+      Alert.alert('Login Error', error || 'An unknown error occurred');
     }
   };
 
@@ -76,7 +61,7 @@ export default function LoginScreen() {
                 style={styles.input}
               />
               
-              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+              {error && <Text style={styles.errorText}>{error}</Text>}
               
               <Button 
                 title="Login" 
@@ -92,7 +77,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity onPress={() => router.push('/forgot-password')}>
+              <TouchableOpacity onPress={() => router.push('./forgot-password')}>
                 <Text style={styles.forgotPassword}>Forgot Password?</Text>
               </TouchableOpacity>
             </View>

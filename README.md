@@ -1,6 +1,6 @@
-# 👩‍🦺 Women Safety App
+# 👩‍🦺 Trinetra
 
-The **Women Safety App** is a React Native mobile application built using **Expo** that aims to provide essential safety tools for women in emergency situations. Whether it’s sharing your live location, making a quick emergency call, or accessing national helpline numbers — this app ensures safety is just a tap away.
+The **Trinetra** is a React Native mobile application built using **Expo** that aims to provide essential safety tools for women in emergency situations. Whether it’s sharing your live location, making a quick emergency call, or accessing national helpline numbers — this app ensures safety is just a tap away.
 
 Designed with simplicity, speed, and user accessibility in mind, the app empowers users with real-time support features that are reliable and easy to use.
 

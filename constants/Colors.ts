@@ -32,6 +32,8 @@ const lightColors = {
     active: '#6A0DAD', // Deep purple
     inactive: '#9370DB', // Medium purple
     background: '#6A0DAD', // Deep purple
+
+    
   },
   border: '#E0E0E0',
 };
