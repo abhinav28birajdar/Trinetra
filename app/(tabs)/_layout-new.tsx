@@ -1,9 +1,9 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { Tabs } from 'expo-router';
 import React from 'react';
-import { Alert, Linking, Text, TouchableOpacity, View } from 'react-native';
-import { supabase } from '../../lib/supabase';
+import { Tabs } from 'expo-router';
+import { View, TouchableOpacity, Text, Alert, Linking } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuthStore } from '../../store/auth';
+import { supabase } from '../../lib/supabase';
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const { user } = useAuthStore();
@@ -135,10 +135,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="community"
+        name="call-logs"
         options={{
-          title: 'Community',
-          tabBarLabel: 'Community',
+          title: 'Calls',
+          tabBarLabel: 'Calls',
         }}
       />
       <Tabs.Screen

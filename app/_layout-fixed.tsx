@@ -1,6 +1,3 @@
-// Import polyfills first
-import '../lib/polyfills';
-
 import { Slot, useRouter, useSegments } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -27,12 +24,8 @@ export default function RootLayout() {
 
     const inAuthGroup = segments[0] === 'login' || segments[0] === 'register'; // Check if on auth screens
     const inAppGroup = segments[0] === '(tabs)'; // Check if in the main app group
-    const onSplash = segments[0] === 'splash'; // Check if on splash screen
 
     console.log("Auth Check - Session:", !!session, "Loading:", isLoading, "Segments:", segments);
-
-    // Allow splash screen to handle its own navigation
-    if (onSplash) return;
 
     if (!session && !inAuthGroup) {
       // If not logged in and not on an auth screen (like login/register)
