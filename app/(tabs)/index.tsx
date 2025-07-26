@@ -1,10 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, Image, Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import TopHeader from '../../components/TopHeader';
 import { useAuth } from '../../store/auth';
+
+const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const { user, profile } = useAuth();
@@ -71,7 +74,6 @@ export default function HomeScreen() {
           text: 'ACTIVATE SOS',
           style: 'destructive',
           onPress: () => {
-            // For now, just show success message
             Alert.alert('SOS Activated', 'Emergency contacts have been notified and emergency services are being called.');
           }
         }
@@ -81,23 +83,292 @@ export default function HomeScreen() {
 
   const quickActions = [
     {
-      title: 'Emergency Contacts',
-      subtitle: 'Manage your emergency contacts',
-      icon: 'people-circle-outline',
-      color: '#dc2626',
-      onPress: () => router.push('/(tabs)/contacts')
+      title: 'Call 911',
+      icon: 'call',
+      color: '#8B5CF6',
+      onPress: () => Linking.openURL('tel:911')
     },
     {
       title: 'Share Location',
-      subtitle: 'Share your live location',
-      icon: 'location-outline',
-      color: '#059669',
+      icon: 'location',
+      color: '#8B5CF6',
       onPress: () => router.push('/(tabs)/live-location')
     },
     {
-      title: 'Safe Check-In',
-      subtitle: 'Let contacts know you\'re safe',
-      icon: 'checkmark-circle-outline',
+      title: 'Community',
+      icon: 'people',
+      color: '#8B5CF6',
+      onPress: () => router.push('/(tabs)/community')
+    },
+    {
+      title: 'Contacts',
+      icon: 'person-circle',
+      color: '#8B5CF6',
+      onPress: () => router.push('/(tabs)/contacts')
+    }
+  ];
+
+  const emergencyNumbers = [
+    { label: 'Police', number: '100', color: '#8B5CF6' },
+    { label: 'Fire', number: '101', color: '#EF4444' },
+    { label: 'Medical', number: '102', color: '#10B981' }
+  ];
+
+  return (
+    <View style={{ flex: 1 }}>
+      <LinearGradient
+        colors={['#8B5CF6', '#A855F7']}
+        style={{ flex: 1 }}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 0.3 }}
+      >
+        {/* Header Section */}
+        <View style={{ paddingTop: 50, paddingHorizontal: 24, paddingBottom: 30 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <View>
+              <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>
+                Welcome Back
+              </Text>
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 16 }}>
+                {profile?.full_name || user?.email?.split('@')[0] || 'User'}
+              </Text>
+            </View>
+            <TouchableOpacity style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="notifications-outline" size={24} color="white" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Search Bar */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderRadius: 15, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 20 }}>
+            <Ionicons name="search-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
+            <Text style={{ flex: 1, color: '#9CA3AF', fontSize: 16 }}>Search</Text>
+          </View>
+
+          {/* Quick Action Buttons */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            {quickActions.map((action, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={action.onPress}
+                style={{ 
+                  width: 70, 
+                  height: 70, 
+                  borderRadius: 35, 
+                  backgroundColor: 'white', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 8,
+                  elevation: 5
+                }}
+              >
+                <Ionicons name={action.icon as any} size={28} color={action.color} />
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Emergency Numbers */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+            {emergencyNumbers.map((emergency, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => Linking.openURL(`tel:${emergency.number}`)}
+                style={{ 
+                  flex: 1, 
+                  marginHorizontal: 5, 
+                  backgroundColor: 'rgba(255,255,255,0.9)', 
+                  borderRadius: 15, 
+                  paddingVertical: 12, 
+                  alignItems: 'center' 
+                }}
+              >
+                <Text style={{ color: emergency.color, fontSize: 18, fontWeight: 'bold' }}>
+                  {emergency.number}
+                </Text>
+                <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>
+                  {emergency.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Main Content Card */}
+        <View style={{ 
+          flex: 1, 
+          backgroundColor: 'white', 
+          borderTopLeftRadius: 30, 
+          borderTopRightRadius: 30, 
+          paddingTop: 30,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -5 },
+          shadowOpacity: 0.1,
+          shadowRadius: 10,
+          elevation: 10
+        }}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Location Sharing Card */}
+            <View style={{ paddingHorizontal: 24, marginBottom: 20 }}>
+              <View style={{ 
+                backgroundColor: '#F8FAFC', 
+                borderRadius: 20, 
+                padding: 20,
+                borderWidth: 1,
+                borderColor: '#E2E8F0'
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+                  <View style={{ 
+                    width: 40, 
+                    height: 40, 
+                    borderRadius: 20, 
+                    backgroundColor: '#8B5CF6', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    marginRight: 12
+                  }}>
+                    <Ionicons name="location" size={20} color="white" />
+                  </View>
+                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1F2937' }}>
+                    Live Location
+                  </Text>
+                </View>
+                
+                {/* Location Image Placeholder */}
+                <View style={{ 
+                  height: 120, 
+                  backgroundColor: '#E5E7EB', 
+                  borderRadius: 15, 
+                  marginBottom: 15,
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Ionicons name="map-outline" size={40} color="#9CA3AF" />
+                  <Text style={{ color: '#6B7280', marginTop: 8 }}>Location Map</Text>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => router.push('/(tabs)/live-location')}
+                  style={{ 
+                    backgroundColor: '#8B5CF6', 
+                    borderRadius: 12, 
+                    paddingVertical: 12, 
+                    alignItems: 'center' 
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
+                    Share Location
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* SOS Button - Large and Prominent */}
+            <View style={{ paddingHorizontal: 24, marginBottom: 30 }}>
+              <TouchableOpacity
+                onPress={activateSOS}
+                style={{ alignItems: 'center' }}
+              >
+                <LinearGradient
+                  colors={['#EF4444', '#DC2626']}
+                  style={{ 
+                    width: 150, 
+                    height: 150, 
+                    borderRadius: 75, 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    shadowColor: '#EF4444',
+                    shadowOffset: { width: 0, height: 8 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 15,
+                    elevation: 10
+                  }}
+                >
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 24, 
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    lineHeight: 28
+                  }}>
+                    SOS
+                  </Text>
+                  <Text style={{ 
+                    color: 'rgba(255,255,255,0.9)', 
+                    fontSize: 12, 
+                    marginTop: 4 
+                  }}>
+                    EMERGENCY
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* Bottom Navigation Placeholder */}
+        <View style={{ 
+          backgroundColor: 'white', 
+          paddingVertical: 20, 
+          paddingHorizontal: 24,
+          borderTopWidth: 1,
+          borderTopColor: '#E5E7EB'
+        }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+            <TouchableOpacity style={{ alignItems: 'center' }}>
+              <View style={{ 
+                width: 40, 
+                height: 40, 
+                borderRadius: 20, 
+                backgroundColor: '#8B5CF6', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <Ionicons name="home" size={20} color="white" />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => router.push('/(tabs)/community')}>
+              <View style={{ 
+                width: 40, 
+                height: 40, 
+                borderRadius: 20, 
+                backgroundColor: '#F3F4F6', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <Ionicons name="people-outline" size={20} color="#6B7280" />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => router.push('/(tabs)/call-logs')}>
+              <View style={{ 
+                width: 40, 
+                height: 40, 
+                borderRadius: 20, 
+                backgroundColor: '#F3F4F6', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <Ionicons name="call-outline" size={20} color="#6B7280" />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => router.push('/(tabs)/profile')}>
+              <View style={{ 
+                width: 40, 
+                height: 40, 
+                borderRadius: 20, 
+                backgroundColor: '#F3F4F6', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <Ionicons name="person-outline" size={20} color="#6B7280" />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </LinearGradient>
+    </View>
+  );
       color: '#2563eb',
       onPress: () => Alert.alert('Coming Soon', 'Safe check-in feature will be available soon.')
     },

@@ -6,32 +6,32 @@ const config = getDefaultConfig(__dirname);
 
 // Add resolver configuration to handle Node.js modules
 config.resolver.alias = {
-  'crypto': 'crypto-browserify',
-  'stream': path.resolve(__dirname, 'stream-polyfill.js'),
-  'http': 'stream-http',
-  'https': 'https-browserify',
-  'buffer': '@craftzdog/react-native-buffer',
-  'util': 'util',
-  'events': 'events',
-  'process': 'process/browser',
-  'url': 'react-native-url-polyfill',
-  'zlib': false, // Disable zlib as it's not needed for basic WebSocket functionality
-};
-
-config.resolver.alias = {
   'url': path.resolve(__dirname, 'url-polyfill.js'),
+  'crypto': 'react-native-crypto',
+  'stream': 'stream-browserify',
+  '_stream_duplex': 'readable-stream/duplex',
+  '_stream_passthrough': 'readable-stream/passthrough',
+  '_stream_readable': 'readable-stream/readable',
+  '_stream_transform': 'readable-stream/transform',
+  '_stream_writable': 'readable-stream/writable',
 };
 
 config.resolver.fallback = {
-  'crypto': 'crypto-browserify',
-  'stream': path.resolve(__dirname, 'stream-polyfill.js'),
+  'crypto': 'react-native-crypto',
+  'stream': 'stream-browserify',
+  'string_decoder': 'string_decoder',
   'http': 'stream-http',
-  'https': 'https-browserify',
+  'https': false, // Disable https-browserify and use fetch instead
   'buffer': '@craftzdog/react-native-buffer',
   'util': 'util',
   'events': 'events',
   'process': 'process/browser',
   'zlib': false, // Disable zlib as it's not needed for basic WebSocket functionality
+  '_stream_duplex': 'readable-stream/duplex',
+  '_stream_passthrough': 'readable-stream/passthrough',
+  '_stream_readable': 'readable-stream/readable',
+  '_stream_transform': 'readable-stream/transform',
+  '_stream_writable': 'readable-stream/writable',
 };
 
 // Ensure node_modules are resolved correctly

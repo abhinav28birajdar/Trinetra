@@ -1,8 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../store/auth';
+
+const { width, height } = Dimensions.get('window');
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
@@ -12,11 +15,17 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
   const { signUp } = useAuth();
 
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword || !fullName) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (!agreeToTerms) {
+      Alert.alert('Error', 'Please agree to the Terms of Service');
       return;
     }
 
@@ -51,125 +60,190 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-white"
-    >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="flex-1 px-6 pt-16">
-          {/* Header */}
-          <View className="items-center mb-12">
-            <View className="w-20 h-20 bg-blue-600 rounded-full items-center justify-center mb-6">
-              <Ionicons name="person-add" size={40} color="white" />
-            </View>
-            <Text className="text-3xl font-bold text-gray-900 mb-2">Create Account</Text>
-            <Text className="text-gray-600 text-center">Join Trinatra for emergency safety</Text>
-          </View>
-
-          {/* Registration Form */}
-          <View className="space-y-6">
-            <View>
-              <Text className="text-gray-700 font-medium mb-2">Full Name</Text>
-              <View className="border border-gray-300 rounded-lg px-4 py-3 bg-gray-50">
-                <TextInput
-                  value={fullName}
-                  onChangeText={setFullName}
-                  placeholder="Enter your full name"
-                  className="text-gray-900"
-                />
+    <View style={{ flex: 1 }}>
+      <LinearGradient
+        colors={['#8B5CF6', '#A855F7', '#C084FC']}
+        style={{ flex: 1 }}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 60 }}>
+              {/* Decorative Elements */}
+              <View style={{ position: 'absolute', top: 40, right: 20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+              <View style={{ position: 'absolute', top: 120, left: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.05)' }} />
+              
+              {/* Header with People Illustrations */}
+              <View style={{ alignItems: 'center', marginBottom: 40 }}>
+                <View style={{ flexDirection: 'row', marginBottom: 20 }}>
+                  <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#F59E0B', marginHorizontal: 5, alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="person" size={24} color="white" />
+                  </View>
+                  <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#EF4444', marginHorizontal: 5, alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="person" size={24} color="white" />
+                  </View>
+                  <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#10B981', marginHorizontal: 5, alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="person" size={24} color="white" />
+                  </View>
+                  <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#3B82F6', marginHorizontal: 5, alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="person" size={24} color="white" />
+                  </View>
+                  <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#8B5CF6', marginHorizontal: 5, alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="person" size={24} color="white" />
+                  </View>
+                </View>
+                
+                <Text style={{ fontSize: 32, fontWeight: 'bold', color: 'white', marginBottom: 8 }}>Register</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.9)', textAlign: 'center', fontSize: 16 }}>Create your account</Text>
               </View>
-            </View>
 
-            <View>
-              <Text className="text-gray-700 font-medium mb-2">Email Address</Text>
-              <View className="border border-gray-300 rounded-lg px-4 py-3 bg-gray-50">
-                <TextInput
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Enter your email"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  className="text-gray-900"
-                />
-              </View>
-            </View>
+              {/* Registration Form Card */}
+              <View style={{ 
+                backgroundColor: 'white', 
+                borderRadius: 20, 
+                padding: 24, 
+                shadowColor: '#000', 
+                shadowOffset: { width: 0, height: 8 }, 
+                shadowOpacity: 0.15, 
+                shadowRadius: 20, 
+                elevation: 10 
+              }}>
+                {/* Full Name Input */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ color: '#374151', fontWeight: '600', marginBottom: 8, fontSize: 14 }}>Full Name</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#F9FAFB' }}>
+                    <Ionicons name="person-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
+                    <TextInput
+                      value={fullName}
+                      onChangeText={setFullName}
+                      placeholder="Full Name"
+                      style={{ flex: 1, color: '#1F2937', fontSize: 16 }}
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+                </View>
 
-            <View>
-              <Text className="text-gray-700 font-medium mb-2">Password</Text>
-              <View className="border border-gray-300 rounded-lg px-4 py-3 bg-gray-50 flex-row items-center">
-                <TextInput
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Create a password"
-                  secureTextEntry={!showPassword}
-                  className="flex-1 text-gray-900"
-                />
+                {/* Email Input */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ color: '#374151', fontWeight: '600', marginBottom: 8, fontSize: 14 }}>Email Address</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#F9FAFB' }}>
+                    <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
+                    <TextInput
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder="Email Address"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      style={{ flex: 1, color: '#1F2937', fontSize: 16 }}
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+                </View>
+
+                {/* Password Input */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ color: '#374151', fontWeight: '600', marginBottom: 8, fontSize: 14 }}>Password</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#F9FAFB' }}>
+                    <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
+                    <TextInput
+                      value={password}
+                      onChangeText={setPassword}
+                      placeholder="Password"
+                      secureTextEntry={!showPassword}
+                      style={{ flex: 1, color: '#1F2937', fontSize: 16 }}
+                      placeholderTextColor="#9CA3AF"
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={{ marginLeft: 8 }}
+                    >
+                      <Ionicons 
+                        name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                        size={20} 
+                        color="#9CA3AF" 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Confirm Password Input */}
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={{ color: '#374151', fontWeight: '600', marginBottom: 8, fontSize: 14 }}>Confirm Password</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#F9FAFB' }}>
+                    <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
+                    <TextInput
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      placeholder="Confirm password"
+                      secureTextEntry={!showConfirmPassword}
+                      style={{ flex: 1, color: '#1F2937', fontSize: 16 }}
+                      placeholderTextColor="#9CA3AF"
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      style={{ marginLeft: 8 }}
+                    >
+                      <Ionicons 
+                        name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
+                        size={20} 
+                        color="#9CA3AF" 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Terms Agreement */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
+                  <TouchableOpacity 
+                    style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                    onPress={() => setAgreeToTerms(!agreeToTerms)}
+                  >
+                    <View style={{ width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: agreeToTerms ? '#8B5CF6' : '#D1D5DB', backgroundColor: agreeToTerms ? '#8B5CF6' : 'transparent', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
+                      {agreeToTerms && <Ionicons name="checkmark" size={12} color="white" />}
+                    </View>
+                    <Text style={{ color: '#6B7280', fontSize: 14, flex: 1 }}>
+                      By registering, you agree to our{' '}
+                      <Text style={{ color: '#8B5CF6', fontWeight: '600' }}>Terms of Service</Text>
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Register Button */}
                 <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  className="ml-2"
+                  onPress={handleRegister}
+                  disabled={isLoading}
+                  style={{ marginBottom: 16 }}
                 >
-                  <Ionicons 
-                    name={showPassword ? "eye-off" : "eye"} 
-                    size={20} 
-                    color="#6b7280" 
-                  />
+                  <LinearGradient
+                    colors={isLoading ? ['#9CA3AF', '#9CA3AF'] : ['#8B5CF6', '#A855F7']}
+                    style={{ paddingVertical: 16, borderRadius: 12, alignItems: 'center' }}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+                      {isLoading ? 'Creating Account...' : 'REGISTER'}
+                    </Text>
+                  </LinearGradient>
                 </TouchableOpacity>
+
+                {/* Sign In Link */}
+                <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={{ color: '#6B7280', fontSize: 14 }}>Already have an account? </Text>
+                  <Link href="/login" asChild>
+                    <TouchableOpacity>
+                      <Text style={{ color: '#8B5CF6', fontWeight: '600', fontSize: 14 }}>Login</Text>
+                    </TouchableOpacity>
+                  </Link>
+                </View>
               </View>
             </View>
-
-            <View>
-              <Text className="text-gray-700 font-medium mb-2">Confirm Password</Text>
-              <View className="border border-gray-300 rounded-lg px-4 py-3 bg-gray-50 flex-row items-center">
-                <TextInput
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  placeholder="Confirm your password"
-                  secureTextEntry={!showConfirmPassword}
-                  className="flex-1 text-gray-900"
-                />
-                <TouchableOpacity
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="ml-2"
-                >
-                  <Ionicons 
-                    name={showConfirmPassword ? "eye-off" : "eye"} 
-                    size={20} 
-                    color="#6b7280" 
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* Register Button */}
-          <TouchableOpacity
-            onPress={handleRegister}
-            disabled={isLoading}
-            className={`mt-8 py-4 rounded-lg ${isLoading ? 'bg-gray-400' : 'bg-blue-600'}`}
-          >
-            <Text className="text-white text-center font-semibold text-lg">
-              {isLoading ? 'Creating Account...' : 'Create Account'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Terms and Privacy */}
-          <Text className="text-center text-gray-500 text-sm mt-6">
-            By creating an account, you agree to our{' '}
-            <Text className="text-blue-600">Terms of Service</Text> and{' '}
-            <Text className="text-blue-600">Privacy Policy</Text>
-          </Text>
-
-          {/* Sign In Link */}
-          <View className="flex-row justify-center mt-8">
-            <Text className="text-gray-600">Already have an account? </Text>
-            <Link href="/login" asChild>
-              <TouchableOpacity>
-                <Text className="text-blue-600 font-semibold">Sign In</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </LinearGradient>
+    </View>
   );
 }

@@ -1,12 +1,12 @@
-diff --git a/node_modules/stream-http/index.js b/node_modules/stream-http/index.js
-index 84bfe51..ae52d20 100644
---- a/node_modules/stream-http/index.js
-+++ b/node_modules/stream-http/index.js
-@@ -2,7 +2,34 @@ var ClientRequest = require('./lib/request')
- var response = require('./lib/response')
- var extend = require('xtend')
- var statusCodes = require('builtin-status-codes')
+diff --git a/node_modules/https-browserify/index.js b/node_modules/https-browserify/index.js
+index cd20302..9a12e6d 100644
+--- a/node_modules/https-browserify/index.js
++++ b/node_modules/https-browserify/index.js
+@@ -1,5 +1,33 @@
+-var http = require('http')
 -var url = require('url')
++// Use stream-http for React Native compatibility
++var http = require('stream-http')
 +// Simplified URL parser for React Native compatibility
 +var url = {
 +  parse: function(urlString) {
@@ -36,5 +36,5 @@ index 84bfe51..ae52d20 100644
 +  }
 +}
  
- var http = exports
+ var https = module.exports
  

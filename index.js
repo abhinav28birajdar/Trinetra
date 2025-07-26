@@ -1,4 +1,5 @@
 import '@craftzdog/react-native-buffer';
+import 'react-native-crypto';
 import 'react-native-get-random-values';
 import 'react-native-url-polyfill/auto';
 import 'text-encoding-polyfill';
