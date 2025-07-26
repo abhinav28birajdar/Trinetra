@@ -5,6 +5,7 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ThemeProvider } from '../components/ThemeProvider';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/auth';
 
@@ -68,8 +69,10 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Slot />
-    </GestureHandlerRootView>
+    <ThemeProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Slot />
+      </GestureHandlerRootView>
+    </ThemeProvider>
   );
 }

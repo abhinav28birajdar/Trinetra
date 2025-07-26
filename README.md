@@ -1,23 +1,51 @@
-# Trinatra - Personal Safety & Emergency Response App 🚨
+# 🛡️ Trinatra - Women's Safety & Emergency App
 
-Trinatra is a comprehensive React Native application designed to enhance personal safety through community networking, emergency alerts, real-time location sharing, and quick emergency response features.
+A comprehensive React Native application designed for women's safety, featuring emergency services, location sharing, and community support - built with modern UI/UX design.
 
-## � Features
+## 🎨 **Modern Design Features**
 
-### Core Safety Features
-- **🆘 Emergency Panic Button** - Instant alert system with location sharing
-- **📍 Live Location Sharing** - Real-time location tracking with trusted contacts
-- **👥 Safety Communities** - Join local safety groups and neighborhoods
-- **📞 Emergency Calling** - Quick access to emergency services and contacts
-- **💬 Community Chat** - Communicate with local safety groups
-- **📱 Emergency Contacts** - Manage and organize emergency contact lists
+- **Purple Gradient Theme** - Beautiful purple gradient backgrounds throughout
+- **Figma-Inspired UI** - Professional design matching modern safety app standards
+- **Card-Based Layouts** - Clean, modern card components with shadows
+- **Responsive Design** - Optimized for various screen sizes
+- **Animated Interactions** - Smooth animations and transitions
 
-### Additional Features
-- **🔒 Secure Authentication** - Powered by Supabase Auth
-- **🗺️ Interactive Maps** - Real-time mapping with React Native Maps
-- **📊 Call Logs** - Track emergency and safety calls
-- **💡 Safety Tips** - Educational content and safety guidelines
-- **⚙️ Customizable Settings** - Personalize app behavior and notifications
+## 🚀 **Key Features**
+
+### 🆘 **Emergency SOS System**
+- **Large TAP Button** - Prominent emergency activation button
+- **5-Second Countdown** - Safety countdown with cancel option
+- **Multiple Emergency Numbers** - Police (100), Medical (102), Fire (101), Women Helpline (1091)
+- **Vibration Feedback** - Physical feedback during emergency activation
+- **Instant Calling** - Direct dialing to emergency services
+
+### 📍 **Live Location Sharing**
+- **Real-Time Tracking** - Share live location with emergency contacts
+- **Duration Control** - Set sharing duration (15min, 30min, 1hr, 2hr, continuous)
+- **Contact Selection** - Choose which contacts receive location updates
+- **Map Preview** - Visual representation of current location
+- **Permission Management** - Proper location permission handling
+
+### 👥 **Emergency Contacts Management**
+- **Family Contacts** - Father, Mother, Sister, Uncle with color-coded avatars
+- **Emergency Services** - Quick access to Police, Medical, Women Safety
+- **Search Functionality** - Easy contact search and filtering
+- **One-Touch Calling** - Instant calling with confirmation dialogs
+- **Emergency Badges** - Visual indicators for emergency contacts
+
+### 💬 **Community Features**
+- **Safety Chat** - Connect with local safety community
+- **Emergency Alerts** - Community-wide emergency notifications
+- **Message Threading** - Organized conversation threads
+- **Quick Stats** - Community activity overview
+- **Real-Time Messaging** - Instant communication capabilities
+
+### 📱 **Modern User Interface**
+- **Welcome Screen** - Personalized greeting with user information
+- **Quick Actions** - Easy access to emergency services and features
+- **Location Status** - Visual location permission and GPS status
+- **Settings Panel** - Comprehensive app configuration
+- **Call Logs** - Emergency call history with statistics
 
 ## 🛠️ Tech Stack
 

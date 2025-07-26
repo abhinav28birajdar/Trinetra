@@ -14,7 +14,7 @@
   "dependencies": {
     "@craftzdog/react-native-buffer": "^6.1.0",
     "@expo/vector-icons": "^14.1.0",
-    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/netinfo": "^11.4.1",
     "@react-native-firebase/app": "^22.2.1",
     "@react-native-firebase/auth": "^22.2.1",
@@ -33,6 +33,7 @@
     "expo-font": "~13.3.1",
     "expo-haptics": "~14.1.4",
     "expo-image": "~2.1.7",
+    "expo-image-picker": "^16.1.4",
     "expo-linear-gradient": "^14.1.5",
     "expo-linking": "~7.1.5",
     "expo-location": "^18.1.5",
@@ -72,6 +73,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@react-native-community/cli": "^19.1.1",
     "@types/react": "~19.0.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",

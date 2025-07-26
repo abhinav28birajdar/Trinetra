@@ -1,12 +1,22 @@
 // Basic profile structure if not using generated types
 export interface Profile {
     id: string;
-    username?: string | null;
-    email?: string | null;
-    phone_number?: string | null;
-    age?: number | null;
+    email: string;
+    full_name: string | null;
+    avatar_url: string | null;
+    phone: string | null;
+    created_at: string;
+    updated_at: string;
+    // Additional fields for profile management
+    emergency_contact_1?: string | null;
+    emergency_contact_2?: string | null;
+    address?: string | null;
+    city?: string | null;
     blood_group?: string | null;
-    avatar_url?: string | null;
+    medical_conditions?: string | null;
+    emergency_message?: string | null;
+    location_sharing_enabled?: boolean;
+    push_notifications_enabled?: boolean;
 }
 
 export interface Contact {

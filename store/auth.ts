@@ -1,12 +1,10 @@
 import { Session, User } from '@supabase/supabase-js';
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-// Assuming types/supabase.ts exists and defines Profile type within Database['public']['Tables']['profiles']['Row']
-// If not, use a manually defined Profile type from types/database.ts
-// import { Profile } from '../types/database';
-import { Database } from '../types/supabase';
+import { Profile } from '../types/database';
+// import { Database } from '../types/supabase';
 
-type Profile = Database['public']['Tables']['profiles']['Row']; // Use generated type
+// type Profile = Database['public']['Tables']['profiles']['Row']; // Use generated type
 
 interface AuthState {
   session: Session | null;
@@ -46,7 +44,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         console.log(`Fetching profile for user: ${userId}`);
         const { data, error, status } = await supabase
          .from('profiles')
-         .select(`id, email, full_name, avatar_url, phone, created_at, updated_at`) // Updated field names
+         .select(`
+           id, email, full_name, avatar_url, phone, created_at, updated_at,
+           emergency_contact_1, emergency_contact_2, address, city, blood_group,
+           medical_conditions, emergency_message, location_sharing_enabled,
+           push_notifications_enabled
+         `) // Updated field names with additional profile fields
          .eq('id', userId)
          .single();
 
