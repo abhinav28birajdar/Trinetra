@@ -58,9 +58,9 @@ export default function SplashScreen() {
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor="#8B5CF6" />
+      <StatusBar barStyle="light-content" backgroundColor="#5A189A" />
       <LinearGradient
-        colors={['#8B5CF6', '#A855F7', '#C084FC']}
+        colors={['#5A189A', '#7C3AED', '#A855F7']}
         style={{ flex: 1 }}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}

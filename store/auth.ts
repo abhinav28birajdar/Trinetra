@@ -160,6 +160,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signUp: async (email: string, password: string, fullName?: string) => {
     try {
       set({ isLoading: true });
+      console.log('Attempting to sign up with Supabase...');
+      console.log('Email:', email);
+      console.log('Supabase client available:', !!supabase);
+      console.log('Supabase auth available:', !!supabase?.auth);
+      
+      // Test basic connectivity first with a simpler URL
+      try {
+        console.log('Testing basic internet connectivity...');
+        const testResponse = await fetch('https://httpbin.org/get', {
+          method: 'GET',
+        });
+        console.log('Internet connectivity test status:', testResponse.status);
+        
+        console.log('Testing Supabase endpoint...');
+        const supabaseResponse = await fetch('https://aaqcyzxvqwgsioyfcdr.supabase.co/rest/v1/', {
+          method: 'HEAD',
+          headers: {
+            'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+          },
+        });
+        console.log('Supabase connectivity test status:', supabaseResponse.status);
+      } catch (connectivityError) {
+        console.error('Connectivity test failed:', connectivityError);
+        console.error('This suggests a network/firewall issue');
+      }
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -172,6 +198,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       if (error) {
         console.error("Sign up error:", error.message);
+        console.error("Full error object:", error);
         return { error };
       }
       
@@ -179,6 +206,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return {};
     } catch (error) {
       console.error("Sign up catch error:", error);
+      console.error("Error type:", typeof error);
+      console.error("Error toString:", error?.toString());
       return { error: error as Error };
     } finally {
       set({ isLoading: false });

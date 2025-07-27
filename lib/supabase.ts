@@ -8,6 +8,9 @@ import { Database } from '../types/supabase'; // Use generated types
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Anon Key (first 20 chars):', supabaseAnonKey?.substring(0, 20));
+
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error("Supabase URL or Anon Key is missing. Check .env file.");
   // You might want to throw an error in production builds

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Dimensions, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../store/auth';
 
 const { width, height } = Dimensions.get('window');
@@ -62,7 +62,7 @@ export default function RegisterScreen() {
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
-        colors={['#8B5CF6', '#A855F7', '#C084FC']}
+        colors={['#5A189A',"#5A189A"]}
         style={{ flex: 1 }}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -77,27 +77,29 @@ export default function RegisterScreen() {
               <View style={{ position: 'absolute', top: 40, right: 20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.1)' }} />
               <View style={{ position: 'absolute', top: 120, left: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.05)' }} />
               
-              {/* Header with People Illustrations */}
+              {/* Header with App Icon */}
               <View style={{ alignItems: 'center', marginBottom: 40 }}>
-                <View style={{ flexDirection: 'row', marginBottom: 20 }}>
-                  <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#F59E0B', marginHorizontal: 5, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="person" size={24} color="white" />
-                  </View>
-                  <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#EF4444', marginHorizontal: 5, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="person" size={24} color="white" />
-                  </View>
-                  <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#10B981', marginHorizontal: 5, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="person" size={24} color="white" />
-                  </View>
-                  <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#3B82F6', marginHorizontal: 5, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="person" size={24} color="white" />
-                  </View>
-                  <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#8B5CF6', marginHorizontal: 5, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="person" size={24} color="white" />
-                  </View>
+                {/* App Icon */}
+                <View style={{
+                  alignItems: 'center',
+                  marginBottom: -15,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 20,
+                  elevation: 10
+                }}>
+                  <Image 
+                    source={require('../assets/images/icon.png')}
+                    style={{ 
+                      width: 100, 
+                      height: 150,
+                      borderRadius: 15
+                    }}
+                  />
                 </View>
                 
-                <Text style={{ fontSize: 32, fontWeight: 'bold', color: 'white', marginBottom: 8 }}>Register</Text>
+                <Text style={{ fontSize: 32, fontWeight: 'bold', color: 'white', marginBottom: 6 }}>Create Account</Text>
                 <Text style={{ color: 'rgba(255,255,255,0.9)', textAlign: 'center', fontSize: 16 }}>Create your account</Text>
               </View>
 
