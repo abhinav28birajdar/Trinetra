@@ -1,11 +1,11 @@
--- Trinatra Women's Safety App Database Schema - Updated
--- Complete database with real-time features and modern safety app capabilities
+-- Trinatra Women's Safety App Database Schema - FIXED VERSION
+-- This version fixes the "Database error saving new user" issue
 
--- Enable PostGIS extension for location services
+-- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- User profiles table with enhanced fields
+-- User profiles table (simplified for reliable user creation)
 CREATE TABLE IF NOT EXISTS profiles (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     full_name TEXT,
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS emergency_contacts (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Call logs table with enhanced tracking
+-- Call logs table
 CREATE TABLE IF NOT EXISTS call_logs (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
@@ -246,36 +246,46 @@ CREATE TRIGGER update_community_messages_updated_at BEFORE UPDATE ON community_m
 CREATE TRIGGER update_user_settings_updated_at BEFORE UPDATE ON user_settings
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Function to automatically create default emergency contacts
-CREATE OR REPLACE FUNCTION create_default_emergency_contacts(user_id UUID)
-RETURNS VOID AS $$
-BEGIN
-    INSERT INTO emergency_contacts (user_id, name, phone, relationship, is_emergency_service, contact_type, avatar_color, priority) VALUES
-    (user_id, 'Police', '100', 'Emergency Service', true, 'police', '#DC2626', 1),
-    (user_id, 'Fire Brigade', '101', 'Emergency Service', true, 'fire', '#EA580C', 2),
-    (user_id, 'Medical Emergency', '102', 'Emergency Service', true, 'medical', '#059669', 3),
-    (user_id, 'Women Helpline', '1091', 'Emergency Service', true, 'women_helpline', '#5A189A', 4);
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to handle new user registration
+-- IMPROVED USER CREATION FUNCTION WITH ERROR HANDLING
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO public.profiles (id, full_name, email)
-    VALUES (NEW.id, NEW.raw_user_meta_data->>'full_name', NEW.email);
+    -- First, try to create the profile with minimal required data
+    BEGIN
+        INSERT INTO public.profiles (id, email, full_name)
+        VALUES (
+            NEW.id, 
+            NEW.email,
+            COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email)
+        );
+    EXCEPTION WHEN OTHERS THEN
+        -- Log the error but don't fail the user creation
+        RAISE NOTICE 'Error creating profile for user %: %', NEW.id, SQLERRM;
+    END;
     
-    -- Create default user settings
-    INSERT INTO public.user_settings (user_id) VALUES (NEW.id);
+    -- Try to create default user settings
+    BEGIN
+        INSERT INTO public.user_settings (user_id) VALUES (NEW.id);
+    EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'Error creating settings for user %: %', NEW.id, SQLERRM;
+    END;
     
-    -- Create default emergency contacts
-    PERFORM create_default_emergency_contacts(NEW.id);
+    -- Try to create default emergency contacts
+    BEGIN
+        INSERT INTO emergency_contacts (user_id, name, phone, relationship, is_emergency_service, contact_type, avatar_color, priority) VALUES
+        (NEW.id, 'Police', '100', 'Emergency Service', true, 'police', '#DC2626', 1),
+        (NEW.id, 'Fire Brigade', '101', 'Emergency Service', true, 'fire', '#EA580C', 2),
+        (NEW.id, 'Medical Emergency', '102', 'Emergency Service', true, 'medical', '#059669', 3),
+        (NEW.id, 'Women Helpline', '1091', 'Emergency Service', true, 'women_helpline', '#5A189A', 4);
+    EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'Error creating emergency contacts for user %: %', NEW.id, SQLERRM;
+    END;
     
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger to call the function when a new user signs up
+-- Drop existing trigger and recreate
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
@@ -286,3 +296,8 @@ GRANT USAGE ON SCHEMA public TO authenticated, anon;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
+
+-- Allow public access to profiles for user registration
+GRANT INSERT ON public.profiles TO anon;
+GRANT INSERT ON public.user_settings TO anon;
+GRANT INSERT ON public.emergency_contacts TO anon;

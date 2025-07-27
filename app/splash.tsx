@@ -8,15 +8,12 @@ import { useAuthStore } from '../store/auth';
 const { width, height } = Dimensions.get('window');
 
 export default function SplashScreen() {
-  const { initializeAuth, session, isLoading } = useAuthStore();
+  const { session, isLoading } = useAuthStore();
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
   const [logoAnim] = useState(new Animated.Value(0));
 
-  useEffect(() => {
-    // Initialize auth when the app starts
-    initializeAuth();
-  }, []);
+  // Remove the auth initialization from here since it's done in _layout.tsx
 
   useEffect(() => {
     // Start animations

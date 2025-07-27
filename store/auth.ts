@@ -11,6 +11,7 @@ interface AuthState {
   user: User | null;
   profile: Profile | null;
   isLoading: boolean;
+  isInitialized: boolean; // Add this flag
   setSession: (session: Session | null) => void;
   fetchProfile: (userId: string) => Promise<void>;
   clearAuth: () => void;
@@ -25,6 +26,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   isLoading: true, // Start as loading initially
+  isInitialized: false, // Add the missing property
 
   setSession: (session) => {
     set({ session, user: session?.user ?? null });
@@ -75,7 +77,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initializeAuth: () => { // Changed to sync function setting up async tasks
-    set({ isLoading: true });
+    // Prevent multiple initializations
+    if (get().isInitialized) {
+      console.log("Auth already initialized, skipping...");
+      return;
+    }
+    
+    set({ isLoading: true, isInitialized: true });
     if (!supabase?.auth) {
         console.warn("Supabase auth not available for initialization.");
         set({ isLoading: false });
