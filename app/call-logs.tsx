@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import { Alert, Dimensions, FlatList, Linking, Text, TouchableOpacity, View } from 'react-native';
-import { supabase } from '../../lib/supabase';
-import { useAuthStore } from '../../store/auth';
+import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../store/auth';
 
 const { width } = Dimensions.get('window');
 

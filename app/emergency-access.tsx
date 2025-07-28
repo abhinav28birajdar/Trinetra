@@ -22,7 +22,20 @@ export default function EmergencyAccessScreen() {
           `This will call ${number}`,
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Call', onPress: () => Linking.openURL(phoneUrl) }
+            { 
+              text: 'Call', 
+              onPress: () => {
+                // Navigate to emergency-call screen with parameters
+                router.push({
+                  pathname: '/emergency-call',
+                  params: {
+                    contactId: service.toLowerCase().replace(/\s+/g, '-'),
+                    contactName: service,
+                    contactPhone: number
+                  }
+                });
+              } 
+            }
           ]
         );
       } else {

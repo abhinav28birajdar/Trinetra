@@ -15,14 +15,15 @@ interface SettingItem {
   type: 'toggle' | 'navigation' | 'action';
   value?: boolean;
   onPress?: () => void;
+  onToggle?: (value: boolean) => void;
+  color?: string;
 }
 
 export default function SettingsScreen() {
   const { user, profile, signOut } = useAuth();
-  const [notifications, setNotifications] = useState(true);
-  const [locationSharing, setLocationSharing] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(profile?.push_notifications_enabled ?? true);
+  const [locationSharing, setLocationSharing] = useState(profile?.location_sharing_enabled ?? true);
   const [emergencyAlerts, setEmergencyAlerts] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
 
   const handleSignOut = () => {
     Alert.alert(
@@ -38,39 +39,46 @@ export default function SettingsScreen() {
   const settingsData: SettingItem[] = [
     {
       id: 'notifications',
-      title: 'Notifications',
-      subtitle: 'Enable push notifications',
+      title: 'Push Notifications',
+      subtitle: 'Receive emergency alerts and updates',
       icon: 'notifications-outline',
       type: 'toggle',
-      value: notifications,
-      onPress: () => setNotifications(!notifications)
+      value: pushNotifications,
+      onToggle: setPushNotifications
     },
     {
       id: 'emergency-alerts',
       title: 'Emergency Alerts',
-      subtitle: 'Receive emergency notifications',
+      subtitle: 'Receive community emergency notifications',
       icon: 'warning-outline',
       type: 'toggle',
       value: emergencyAlerts,
-      onPress: () => setEmergencyAlerts(!emergencyAlerts)
+      onToggle: setEmergencyAlerts
     },
     {
       id: 'location',
       title: 'Location Sharing',
-      subtitle: 'Share location with contacts',
+      subtitle: 'Share location with emergency contacts',
       icon: 'location-outline',
       type: 'toggle',
       value: locationSharing,
-      onPress: () => setLocationSharing(!locationSharing)
+      onToggle: setLocationSharing
     },
     {
-      id: 'dark-mode',
-      title: 'Dark Mode',
-      subtitle: 'Use dark theme',
-      icon: 'moon-outline',
-      type: 'toggle',
-      value: darkMode,
-      onPress: () => setDarkMode(!darkMode)
+      id: 'profile',
+      title: 'Edit Profile',
+      subtitle: 'Update your personal information',
+      icon: 'person-outline',
+      type: 'navigation',
+      onPress: () => router.push('/edit-profile')
+    },
+    {
+      id: 'emergency-contacts',
+      title: 'Emergency Contacts',
+      subtitle: 'Manage your emergency contacts',
+      icon: 'people-outline',
+      type: 'navigation',
+      onPress: () => router.push('/(tabs)/contacts')
     },
     {
       id: 'privacy',
@@ -90,18 +98,27 @@ export default function SettingsScreen() {
     },
     {
       id: 'help',
+      title: 'Safety Tips',
+      subtitle: 'Learn important safety information',
+      icon: 'shield-checkmark-outline',
+      type: 'navigation',
+      onPress: () => router.push('/safety-tips')
+    },
+    {
+      id: 'support',
       title: 'Help & Support',
       subtitle: 'Get help and support',
       icon: 'help-circle-outline',
       type: 'navigation',
-      onPress: () => Alert.alert('Coming Soon', 'Help and support will be available soon.')
+      onPress: () => Alert.alert('Support', 'For support, please email: support@trinatra.com')
     },
     {
       id: 'logout',
-      title: 'Log Out',
+      title: 'Sign Out',
       subtitle: 'Sign out of your account',
       icon: 'log-out-outline',
       type: 'action',
+      color: '#EF4444',
       onPress: handleSignOut
     }
   ];
@@ -110,6 +127,7 @@ export default function SettingsScreen() {
     <TouchableOpacity
       key={item.id}
       onPress={item.onPress}
+      disabled={item.type === 'toggle'}
       style={{ 
         flexDirection: 'row', 
         alignItems: 'center', 
@@ -163,7 +181,7 @@ export default function SettingsScreen() {
       {item.type === 'toggle' && (
         <Switch
           value={item.value}
-          onValueChange={item.onPress}
+          onValueChange={item.onToggle}
           trackColor={{ false: '#E5E7EB', true: '#8B5CF6' }}
           thumbColor={item.value ? '#FFFFFF' : '#F3F4F6'}
         />

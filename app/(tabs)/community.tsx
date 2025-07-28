@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Dimensions, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useAuth } from '../../store/auth';
+import { Alert, Dimensions, FlatList, Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useAuthStore } from '../../store/auth';
 
 const { width, height } = Dimensions.get('window');
 
@@ -14,10 +15,46 @@ interface Message {
   timestamp: string;
   is_emergency?: boolean;
   avatar_color?: string;
+  phone?: string;
+}
+
+interface CommunityMember {
+  id: string;
+  username: string;
+  avatar_color: string;
+  phone: string;
+  is_online: boolean;
+  last_seen: string;
 }
 
 export default function CommunityScreen() {
-  const { user, profile } = useAuth();
+  const { user, profile } = useAuthStore();
+  const [showAddContact, setShowAddContact] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<CommunityMember | null>(null);
+  const [newMember, setNewMember] = useState({
+    username: '',
+    phone: '',
+    avatar_color: '#8B5CF6'
+  });
+  const [communityMembers, setCommunityMembers] = useState<CommunityMember[]>([
+    {
+      id: 'demo1',
+      username: 'Sarah M.',
+      avatar_color: '#EF4444',
+      phone: '+1234567890',
+      is_online: true,
+      last_seen: new Date().toISOString()
+    },
+    {
+      id: 'demo3',
+      username: 'Mike R.',
+      avatar_color: '#3B82F6',
+      phone: '+1234567892',
+      is_online: false,
+      last_seen: new Date(Date.now() - 30 * 60 * 1000).toISOString()
+    }
+  ]);
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -26,7 +63,8 @@ export default function CommunityScreen() {
       message: 'Is everyone safe after the weather alert? Checking in from downtown area.',
       timestamp: '2025-01-24T15:30:00Z',
       is_emergency: false,
-      avatar_color: '#EF4444'
+      avatar_color: '#EF4444',
+      phone: '+1234567890'
     },
     {
       id: '2',
@@ -44,7 +82,8 @@ export default function CommunityScreen() {
       message: 'Road closure on Main St due to fallen tree. Use alternate routes.',
       timestamp: '2025-01-24T14:45:00Z',
       is_emergency: false,
-      avatar_color: '#3B82F6'
+      avatar_color: '#3B82F6',
+      phone: '+1234567892'
     },
     {
       id: '4',
@@ -84,6 +123,53 @@ export default function CommunityScreen() {
 
     setMessages([message, ...messages]);
     setNewMessage('');
+  };
+
+  const addCommunityMember = () => {
+    if (!newMember.username.trim()) {
+      Alert.alert('Error', 'Please enter a username');
+      return;
+    }
+
+    const member: CommunityMember = {
+      id: Date.now().toString(),
+      username: newMember.username.trim(),
+      phone: newMember.phone.trim() || '+0000000000',
+      avatar_color: newMember.avatar_color,
+      is_online: true,
+      last_seen: new Date().toISOString()
+    };
+
+    setCommunityMembers(prev => [...prev, member]);
+    setNewMember({ username: '', phone: '', avatar_color: '#8B5CF6' });
+    setShowAddContact(false);
+    Alert.alert('Success', `${member.username} has been added to the community!`);
+  };
+
+  const sendCheckIn = () => {
+    Alert.alert(
+      'Safety Check-in',
+      'Send a safety check-in to the community?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Check-in',
+          onPress: () => {
+            const checkInMessage: Message = {
+              id: Date.now().toString(),
+              user_id: user?.id || 'current_user',
+              username: profile?.full_name || 'You',
+              message: 'I am safe and checking in with the community. All good here! 👍',
+              timestamp: new Date().toISOString(),
+              is_emergency: false,
+              avatar_color: '#3B82F6'
+            };
+            setMessages([checkInMessage, ...messages]);
+            Alert.alert('Check-in Sent', 'Your safety status has been shared with the community.');
+          }
+        }
+      ]
+    );
   };
 
   const sendEmergencyAlert = () => {
@@ -128,15 +214,25 @@ export default function CommunityScreen() {
       elevation: 3
     }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-        <View style={{ 
-          width: 40, 
-          height: 40, 
-          borderRadius: 20, 
-          backgroundColor: item.avatar_color || '#8B5CF6', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          marginRight: 12
-        }}>
+        <TouchableOpacity 
+          onPress={() => item.phone && setSelectedMember({
+            id: item.user_id,
+            username: item.username,
+            avatar_color: item.avatar_color || '#8B5CF6',
+            phone: item.phone!,
+            is_online: true,
+            last_seen: item.timestamp
+          })}
+          style={{ 
+            width: 40, 
+            height: 40, 
+            borderRadius: 20, 
+            backgroundColor: item.avatar_color || '#8B5CF6', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            marginRight: 12
+          }}
+        >
           {item.is_emergency ? (
             <Ionicons name="warning" size={20} color="white" />
           ) : (
@@ -144,7 +240,7 @@ export default function CommunityScreen() {
               {item.username[0]?.toUpperCase()}
             </Text>
           )}
-        </View>
+        </TouchableOpacity>
         
         <View style={{ flex: 1 }}>
           <Text style={{ 
@@ -161,6 +257,29 @@ export default function CommunityScreen() {
             {formatTimestamp(item.timestamp)}
           </Text>
         </View>
+
+        {/* Add Contact Button */}
+        {item.phone && !item.is_emergency && (
+          <TouchableOpacity
+            onPress={() => setSelectedMember({
+              id: item.user_id,
+              username: item.username,
+              avatar_color: item.avatar_color || '#8B5CF6',
+              phone: item.phone!,
+              is_online: true,
+              last_seen: item.timestamp
+            })}
+            style={{
+              backgroundColor: '#7C3AED',
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 8,
+              marginRight: 8
+            }}
+          >
+            <Ionicons name="person-add" size={16} color="white" />
+          </TouchableOpacity>
+        )}
 
         {item.is_emergency && (
           <View style={{ 
@@ -228,9 +347,35 @@ export default function CommunityScreen() {
             <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>
               Community
             </Text>
-            <TouchableOpacity style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="people-outline" size={24} color="white" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row' }}>
+              <TouchableOpacity 
+                onPress={() => setShowAddContact(true)}
+                style={{ 
+                  width: 40, 
+                  height: 40, 
+                  borderRadius: 20, 
+                  backgroundColor: 'rgba(255,255,255,0.2)', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  marginRight: 12
+                }}
+              >
+                <Ionicons name="person-add" size={20} color="white" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => router.push('/settings')}
+                style={{ 
+                  width: 40, 
+                  height: 40, 
+                  borderRadius: 20, 
+                  backgroundColor: 'rgba(255,255,255,0.2)', 
+                  alignItems: 'center', 
+                  justifyContent: 'center' 
+                }}
+              >
+                <Ionicons name="settings" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Quick Stats */}
@@ -278,7 +423,10 @@ export default function CommunityScreen() {
               <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '600' }}>Emergency</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={{ alignItems: 'center' }}>
+            <TouchableOpacity 
+              onPress={sendCheckIn}
+              style={{ alignItems: 'center' }}
+            >
               <View style={{ 
                 width: 60, 
                 height: 60, 
@@ -293,7 +441,10 @@ export default function CommunityScreen() {
               <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '600' }}>Check-in</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={{ alignItems: 'center' }}>
+            <TouchableOpacity 
+              style={{ alignItems: 'center' }}
+              onPress={() => router.push('/safety-tips')}
+            >
               <View style={{ 
                 width: 60, 
                 height: 60, 
@@ -370,6 +521,250 @@ export default function CommunityScreen() {
           </View>
         </View>
       </LinearGradient>
+
+      {/* Add Contact Modal */}
+      <Modal
+        visible={!!selectedMember}
+        animationType="slide"
+        transparent={true}
+      >
+        {selectedMember && (
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 20
+          }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 20,
+              padding: 24,
+              width: '100%',
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.25,
+              shadowRadius: 20,
+              elevation: 10,
+            }}>
+              <View style={{ alignItems: 'center', marginBottom: 24 }}>
+                <View style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: selectedMember.avatar_color,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 16
+                }}>
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 32, 
+                    fontWeight: 'bold' 
+                  }}>
+                    {selectedMember.username[0]?.toUpperCase()}
+                  </Text>
+                </View>
+                
+                <Text style={{ 
+                  fontSize: 20, 
+                  fontWeight: 'bold', 
+                  color: '#1F2937',
+                  textAlign: 'center',
+                  marginBottom: 8
+                }}>
+                  {selectedMember.username}
+                </Text>
+                
+                <Text style={{ 
+                  fontSize: 14, 
+                  color: '#6B7280',
+                  textAlign: 'center'
+                }}>
+                  {selectedMember.phone}
+                </Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    Alert.alert(
+                      'Add to Contacts',
+                      `Add ${selectedMember.username} to your contacts?`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Add Contact',
+                          onPress: () => {
+                            // Navigate to contacts page to add this contact
+                            router.push({
+                              pathname: '/contacts',
+                              params: {
+                                addContact: 'true',
+                                name: selectedMember.username,
+                                phone: selectedMember.phone
+                              }
+                            });
+                            setSelectedMember(null);
+                          }
+                        }
+                      ]
+                    );
+                  }}
+                  style={{
+                    backgroundColor: '#7C3AED',
+                    padding: 16,
+                    borderRadius: 12,
+                    flex: 1,
+                    marginRight: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Ionicons name="person-add" size={20} color="white" style={{ marginRight: 8 }} />
+                  <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                    Add Contact
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setSelectedMember(null)}
+                  style={{
+                    backgroundColor: '#6B7280',
+                    padding: 16,
+                    borderRadius: 12,
+                    flex: 1,
+                    marginLeft: 8,
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+      </Modal>
+
+      {/* Add Community Member Modal */}
+      <Modal
+        visible={showAddContact}
+        animationType="slide"
+        transparent={true}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          justifyContent: 'flex-end'
+        }}>
+          <View style={{
+            backgroundColor: 'white',
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            padding: 24,
+            maxHeight: height * 0.7
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 20
+            }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1F2937' }}>
+                Add Community Member
+              </Text>
+              <TouchableOpacity onPress={() => setShowAddContact(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Username *
+              </Text>
+              <TextInput
+                value={newMember.username}
+                onChangeText={(text) => setNewMember(prev => ({ ...prev, username: text }))}
+                placeholder="Enter username"
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 12,
+                  padding: 12,
+                  fontSize: 16
+                }}
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Phone Number (Optional)
+              </Text>
+              <TextInput
+                value={newMember.phone}
+                onChangeText={(text) => setNewMember(prev => ({ ...prev, phone: text }))}
+                placeholder="Enter phone number"
+                keyboardType="phone-pad"
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  borderRadius: 12,
+                  padding: 12,
+                  fontSize: 16
+                }}
+              />
+            </View>
+
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 12 }}>
+                Avatar Color
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                {['#8B5CF6', '#EF4444', '#10B981', '#3B82F6', '#F59E0B', '#EC4899'].map(color => (
+                  <TouchableOpacity
+                    key={color}
+                    onPress={() => setNewMember(prev => ({ ...prev, avatar_color: color }))}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: color,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: newMember.avatar_color === color ? 3 : 0,
+                      borderColor: '#1F2937'
+                    }}
+                  >
+                    {newMember.avatar_color === color && (
+                      <Ionicons name="checkmark" size={20} color="white" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <TouchableOpacity
+              onPress={addCommunityMember}
+              style={{
+                backgroundColor: '#8B5CF6',
+                padding: 16,
+                borderRadius: 12,
+                alignItems: 'center',
+                marginBottom: 8
+              }}
+            >
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                Add to Community
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

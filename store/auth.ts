@@ -169,54 +169,63 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ isLoading: true });
       console.log('Attempting to sign up with Supabase...');
-      console.log('Email:', email);
-      console.log('Supabase client available:', !!supabase);
-      console.log('Supabase auth available:', !!supabase?.auth);
       
-      // Test basic connectivity first with a simpler URL
+      // Test basic connectivity first
       try {
         console.log('Testing basic internet connectivity...');
-        const testResponse = await fetch('https://httpbin.org/get', {
-          method: 'GET',
-        });
+        const testResponse = await fetch('https://httpbin.org/get');
         console.log('Internet connectivity test status:', testResponse.status);
-        
-        console.log('Testing Supabase endpoint...');
-        const supabaseResponse = await fetch('https://aaqcyzxvqwgsioyfcdr.supabase.co/rest/v1/', {
-          method: 'HEAD',
-          headers: {
-            'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
-          },
-        });
-        console.log('Supabase connectivity test status:', supabaseResponse.status);
       } catch (connectivityError) {
         console.error('Connectivity test failed:', connectivityError);
-        console.error('This suggests a network/firewall issue');
+        return { error: new Error('Network connectivity issue. Please check your internet connection.') };
       }
       
+      // Create the user account
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: fullName,
-          }
+            full_name: fullName || email.split('@')[0], // Use part of email if no name provided
+          },
+          emailRedirectTo: 'trinatraapp://auth/callback',
         }
       });
       
       if (error) {
         console.error("Sign up error:", error.message);
-        console.error("Full error object:", error);
         return { error };
       }
       
       console.log("User signed up:", data.user?.id);
+      
+      // Manually create profile record - important since DB triggers might fail
+      if (data.user?.id) {
+        try {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              email: email,
+              full_name: fullName || email.split('@')[0],
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+          
+          if (profileError) {
+            console.error("Error creating profile:", profileError.message);
+            // Continue anyway, as this is not critical for authentication
+          }
+        } catch (profileError) {
+          console.error("Manual profile creation failed:", profileError);
+          // Don't fail the signup process for this
+        }
+      }
+      
       return {};
     } catch (error) {
       console.error("Sign up catch error:", error);
-      console.error("Error type:", typeof error);
-      console.error("Error toString:", error?.toString());
-      return { error: error as Error };
+      return { error: error instanceof Error ? error : new Error('Unknown signup error') };
     } finally {
       set({ isLoading: false });
     }

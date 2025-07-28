@@ -26,7 +26,7 @@ export default function AppHeader({ title, showSettings = true, showBackButton =
                      </TouchableOpacity>
                  )}
                  {/* Avatar and Name */}
-                <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} className="flex-row items-center">
+                <TouchableOpacity onPress={() => router.push('/settings')} className="flex-row items-center">
                     <Image
                          source={profile?.avatar_url ? { uri: profile.avatar_url } : defaultAvatar}
                         className="w-8 h-8 rounded-full mr-2 bg-gray-300"

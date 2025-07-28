@@ -1,12 +1,10 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require('nativewind/metro');
-const path = require('path');
  
 const config = getDefaultConfig(__dirname);
 
 // Add resolver configuration to handle Node.js modules
 config.resolver.alias = {
-  'url': path.resolve(__dirname, 'url-polyfill.js'),
   'crypto': 'react-native-crypto',
   'stream': 'stream-browserify',
   '_stream_duplex': 'readable-stream/duplex',

@@ -1,23 +1,205 @@
-# 🛡️ Trinatra - Women's Safety & Emergency App
+# 🛡️ Trinatra - Your Personal Safety Companion
 
-A comprehensive React Native application designed for women's safety, featuring emergency services, location sharing, and community support - built with modern UI/UX design.
+<div align="center">
+  <img src="./assets/images/icon.png" alt="Trinatra App Icon" width="120" height="120">
+  
+  [![React Native](https://img.shields.io/badge/React%20Native-0.73-blue.svg)](https://reactnative.dev/)
+  [![Expo](https://img.shields.io/badge/Expo-50-black.svg)](https://expo.dev/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://typescriptlang.org/)
+  [![Supabase](https://img.shields.io/badge/Supabase-Backend-green.svg)](https://supabase.com/)
+</div>
 
-## 🎨 **Modern Design Features**
+## 📱 About Trinatra
 
-- **Purple Gradient Theme** - Beautiful purple gradient backgrounds throughout
-- **Figma-Inspired UI** - Professional design matching modern safety app standards
-- **Card-Based Layouts** - Clean, modern card components with shadows
-- **Responsive Design** - Optimized for various screen sizes
-- **Animated Interactions** - Smooth animations and transitions
+Trinatra is a comprehensive personal safety app designed to keep you and your loved ones protected. With features like live location sharing, emergency contacts, community alerts, and SOS functionality, Trinatra ensures help is always within reach.
 
-## 🚀 **Key Features**
+## ✨ Key Features
 
-### 🆘 **Emergency SOS System**
-- **Large TAP Button** - Prominent emergency activation button
-- **5-Second Countdown** - Safety countdown with cancel option
-- **Multiple Emergency Numbers** - Police (100), Medical (102), Fire (101), Women Helpline (1091)
-- **Vibration Feedback** - Physical feedback during emergency activation
-- **Instant Calling** - Direct dialing to emergency services
+### 🏠 **Home Dashboard**
+- Quick access to emergency contacts
+- Real-time safety updates
+- Emergency SOS button
+- Recent activity overview
+
+### 👥 **Contact Management**
+- Add and manage emergency contacts
+- Call logs integration
+- Quick dial emergency services
+- Contact categorization (Family, Friends, Emergency Services)
+
+### 🚨 **SOS Emergency**
+- One-tap emergency alert system
+- Automatic location sharing to emergency contacts
+- Integration with local emergency services
+- Background operation for critical situations
+
+### 📍 **Live Location Sharing**
+- Real-time location sharing with selected contacts
+- Customizable sharing duration (15min, 30min, 1hr, 2hr, continuous)
+- Accurate GPS tracking
+- Privacy-focused sharing controls
+
+### 🌐 **Community Safety**
+- Local safety alerts and updates
+- Community messaging system
+- Share safety tips and information
+- Emergency notifications from authorities
+
+## 🛠️ Technology Stack
+
+- **Frontend**: React Native with Expo
+- **Language**: TypeScript
+- **Navigation**: Expo Router
+- **UI Framework**: NativeWind (Tailwind CSS for React Native)
+- **Database**: Supabase
+- **Authentication**: Supabase Auth
+- **Location Services**: Expo Location
+- **Notifications**: Expo Notifications
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js (v16 or later)
+- npm or yarn
+- Expo CLI
+- Android Studio (for Android development)
+- Xcode (for iOS development)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/abhinav28birajdar/Trinetra.git
+   cd Trinatra
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   Create a `.env` file in the root directory:
+   ```env
+   EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+4. **Start the development server**
+   ```bash
+   npm start
+   ```
+
+5. **Run on device/simulator**
+   - For iOS: Press `i` in the terminal or scan QR code with Expo Go
+   - For Android: Press `a` in the terminal or scan QR code with Expo Go
+
+## 📁 Project Structure
+
+```
+app/
+├── (tabs)/              # Tab-based navigation screens
+│   ├── index.tsx        # Home screen
+│   ├── contacts.tsx     # Contact management
+│   ├── live-location.tsx # Location sharing
+│   ├── community.tsx    # Community features
+│   └── _layout.tsx      # Tab navigation layout
+├── settings.tsx         # App settings
+├── safety-tips.tsx      # Safety tips and guidelines
+└── _layout.tsx          # Root layout
+
+components/
+├── AppHeader.tsx        # Reusable header component
+├── LoadingScreen.tsx    # Loading state component
+└── ThemeProvider.tsx    # Theme management
+
+lib/
+├── supabase.ts         # Supabase configuration
+└── firebase.ts         # Firebase configuration
+
+store/
+└── auth.ts             # Authentication state management
+
+types/
+├── database.ts         # Database type definitions
+└── supabase.ts         # Supabase type definitions
+```
+
+## �️ Database Schema
+
+The app uses Supabase with the following main tables:
+
+- **profiles**: User profile information
+- **contacts**: Emergency and regular contacts
+- **call_logs**: Call history and emergency logs
+- **location_shares**: Live location sharing sessions
+- **community_messages**: Community chat messages
+
+## 🔒 Security & Privacy
+
+- End-to-end encryption for sensitive data
+- Location data is only shared with explicitly selected contacts
+- User authentication and authorization via Supabase
+- No data collection without user consent
+- Automatic data cleanup after sharing sessions end
+
+## 🎨 Design Principles
+
+- **Accessibility First**: Large buttons, clear typography, high contrast
+- **Emergency Focused**: Critical features are prominently displayed
+- **User-Friendly**: Intuitive navigation and minimal learning curve
+- **Reliable**: Robust error handling and offline capabilities
+
+## 🔧 Configuration
+
+### Emergency Services Configuration
+The app comes pre-configured with emergency numbers for different regions. You can customize these in the contacts section.
+
+### Notification Settings
+Configure push notifications for:
+- Emergency alerts
+- Location sharing requests
+- Community updates
+- System notifications
+
+## 📱 Platform Support
+
+- ✅ iOS (13.0+)
+- ✅ Android (API level 21+)
+- ✅ Expo Go compatible
+- ✅ Standalone builds supported
+
+## 🤝 Contributing
+
+We welcome contributions! Please read our contributing guidelines before submitting pull requests.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📞 Support
+
+For support, email support@trinatra.com or join our community chat.
+
+## 🙏 Acknowledgments
+
+- Emergency services worldwide for their dedication to public safety
+- Open source community for the amazing tools and libraries
+- Beta testers who helped make Trinatra better
+
+---
+
+<div align="center">
+  <p>Made with ❤️ for personal safety and peace of mind</p>
+  <p>© 2025 Trinatra. All rights reserved.</p>
+</div>
 
 ### 📍 **Live Location Sharing**
 - **Real-Time Tracking** - Share live location with emergency contacts

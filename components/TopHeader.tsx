@@ -23,7 +23,7 @@ export default function TopHeader({ showBackButton, showProfile = false, title, 
   };
 
   const handleProfilePress = () => {
-    router.push('/(tabs)/profile');
+    router.push('/settings');
   };
 
   const handleSettingsPress = () => {

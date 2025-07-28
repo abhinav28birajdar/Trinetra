@@ -1,9 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Alert, Linking, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, Linking, Platform, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/auth';
+
+const { width } = Dimensions.get('window');
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const { user } = useAuthStore();
@@ -25,7 +27,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                 phone_number: '100',
                 contact_name: 'Emergency - Police',
                 call_type: 'outgoing',
-                timestamp: new Date().toISOString(),
+                started_at: new Date().toISOString(),
                 duration: 0,
               });
             }
@@ -40,75 +42,139 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
     );
   };
 
+  // Define the tab order: Home → Contacts → SOS → Location → Community
+  const tabOrder = ['index', 'contacts', 'sos', 'live-location', 'community'];
+  const allRoutes = state.routes;
+  const tabWidth = width / 5; // 5 equal tabs including SOS
+
   return (
-    <View className="flex-row bg-primary justify-around items-center h-20 pb-3 pt-2 px-2">
-      {state.routes.map((route: any, index: number) => {
-        const { options } = descriptors[route.key];
-        const label = options.tabBarLabel ?? options.title ?? route.name;
-        const isFocused = state.index === index;
-
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
+    <SafeAreaView style={{ backgroundColor: '#7C3AED' }}>
+      <View style={{
+        flexDirection: 'row',
+        backgroundColor: '#7C3AED',
+        alignItems: 'center',
+        height: Platform.OS === 'ios' ? 80 : 70,
+        paddingHorizontal: 0,
+        paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+        paddingTop: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 10,
+      }}>
+        {/* Render tabs in proper order with SOS in the middle */}
+        {tabOrder.map((routeName: string, index: number) => {
+          if (routeName === 'sos') {
+            // SOS Button in the middle position
+            return (
+              <TouchableOpacity
+                key="sos"
+                onPress={handleSosPress}
+                style={{
+                  width: tabWidth,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: 8,
+                }}
+              >
+                <View style={{
+                  backgroundColor: '#EF4444',
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 4,
+                  elevation: 6,
+                }}>
+                  <Ionicons name="alert" size={24} color="white" />
+                </View>
+                <Text style={{
+                  fontSize: 10,
+                  marginTop: 4,
+                  textAlign: 'center',
+                  color: '#FFFFFF',
+                  fontWeight: '600',
+                }}>
+                  SOS
+                </Text>
+              </TouchableOpacity>
+            );
           }
-        };
 
-        // Skip rendering the SOS button here, we'll add it separately
-        if (route.name === 'placeholder') {
-          return <View key={route.key} className="w-12 h-12" />;
-        }
+          // Find the actual route for this tab
+          const route = allRoutes.find((r: any) => r.name === routeName);
+          if (!route) return null;
 
-        let iconName: any = 'home';
-        if (route.name === 'index') iconName = 'home';
-        else if (route.name === 'contacts') iconName = 'people';
-        else if (route.name === 'call-logs') iconName = 'call';
-        else if (route.name === 'community') iconName = 'chatbubbles';
-        else if (route.name === 'live-location') iconName = 'location';
-        else if (route.name === 'profile') iconName = 'person';
+          const { options } = descriptors[route.key];
+          const isFocused = state.routes.findIndex((r: any) => r.name === routeName) === state.index;
 
-        return (
-          <TouchableOpacity
-            key={route.key}
-            onPress={onPress}
-            className={`items-center justify-center p-2 rounded-lg ${
-              isFocused ? 'bg-white bg-opacity-20' : ''
-            }`}
-          >
-            <Ionicons 
-              name={iconName} 
-              size={24} 
-              color={isFocused ? '#FFFFFF' : '#C084FC'} 
-            />
-            <Text className={`text-xs mt-1 ${
-              isFocused ? 'text-white font-semibold' : 'text-purple-200'
-            }`}>
-              {label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
 
-      {/* SOS Button */}
-      <TouchableOpacity
-        onPress={handleSosPress}
-        className="bg-red-500 w-14 h-14 rounded-full items-center justify-center shadow-lg"
-        style={{ 
-          shadowColor: '#000', 
-          shadowOffset: { width: 0, height: 2 }, 
-          shadowOpacity: 0.25, 
-          shadowRadius: 3.84,
-          elevation: 5 
-        }}
-      >
-        <Text className="text-white font-bold text-xs">SOS</Text>
-      </TouchableOpacity>
-    </View>
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+
+          let iconName: any = 'home';
+          let displayLabel = routeName;
+          
+          if (routeName === 'index') {
+            iconName = 'home';
+            displayLabel = 'Home';
+          } else if (routeName === 'contacts') {
+            iconName = 'people';
+            displayLabel = 'Contacts';
+          } else if (routeName === 'community') {
+            iconName = 'chatbubbles';
+            displayLabel = 'Community';
+          } else if (routeName === 'live-location') {
+            iconName = 'location';
+            displayLabel = 'Location';
+          }
+
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={onPress}
+              style={{
+                width: tabWidth,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingVertical: 8,
+                paddingHorizontal: 4,
+                borderRadius: 12,
+                backgroundColor: isFocused ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+              }}
+            >
+              <Ionicons 
+                name={iconName} 
+                size={22} 
+                color={isFocused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.7)'} 
+              />
+              <Text style={{
+                fontSize: 10,
+                marginTop: 4,
+                textAlign: 'center',
+                color: isFocused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.7)',
+                fontWeight: isFocused ? '600' : '400',
+              }}>
+                {displayLabel}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -118,7 +184,10 @@ export default function TabLayout() {
   return (
     <Tabs 
       tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ 
+        headerShown: false,
+        tabBarHideOnKeyboard: true,
+      }}
     >
       <Tabs.Screen
         name="index"
@@ -135,20 +204,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="community"
-        options={{
-          title: 'Community',
-          tabBarLabel: 'Community',
-        }}
-      />
-      <Tabs.Screen
-        name="placeholder"
-        options={{
-          title: '',
-          tabBarLabel: '',
-        }}
-      />
-      <Tabs.Screen
         name="live-location"
         options={{
           title: 'Location',
@@ -156,10 +211,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="community"
         options={{
-          title: 'Profile',
-          tabBarLabel: 'Profile',
+          title: 'Community',
+          tabBarLabel: 'Community',
         }}
       />
     </Tabs>

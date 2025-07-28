@@ -160,16 +160,25 @@ export default function HomeScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Call',
-          onPress: () => {
-            // Navigate to emergency-call screen with contact details
-            router.push({
-              pathname: '/emergency-call',
-              params: {
-                contactId: contact.id,
-                contactName: contact.name,
-                contactPhone: contact.phone
-              }
-            });
+          onPress: async () => {
+            try {
+              await Linking.openURL(`tel:${contact.phone}`);
+              
+              // Log the call
+              await supabase
+                .from('call_logs')
+                .insert([{
+                  user_id: user?.id,
+                  contact_id: contact.id,
+                  phone_number: contact.phone,
+                  contact_name: contact.name,
+                  call_type: 'outgoing',
+                  is_emergency: contact.contact_type !== 'personal',
+                }]);
+            } catch (error) {
+              console.error('Error making call:', error);
+              Alert.alert('Error', 'Unable to make call');
+            }
           },
         },
       ]

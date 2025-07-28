@@ -7,15 +7,29 @@ import 'text-encoding-polyfill';
 // Declare global types
 declare const global: any;
 
-// Use our custom stream polyfill
-const streamPolyfill = require('../stream-polyfill.js');
-global.stream = streamPolyfill;
-
 // Buffer polyfill
 const BufferPolyfill = require('@craftzdog/react-native-buffer');
 global.Buffer = BufferPolyfill.Buffer;
 
 // Process polyfill
 global.process = require('process/browser');
+
+// Stream polyfill using stream-browserify package
+try {
+  const streamBrowserify = require('stream-browserify');
+  global.stream = streamBrowserify;
+  
+  // Additional stream polyfills
+  global.Stream = streamBrowserify;
+  if (!global.stream.Readable) {
+    global.stream.Readable = require('readable-stream').Readable;
+  }
+} catch (error) {
+  console.warn('Stream polyfill not available:', error);
+}
+
+// Additional Node.js polyfills
+global.crypto = require('crypto-browserify');
+global.util = require('util');
 
 console.log('All polyfills loaded successfully');

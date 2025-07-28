@@ -7,6 +7,7 @@ import {
   Alert,
   Dimensions,
   Linking,
+  Modal,
   RefreshControl,
   ScrollView,
   Switch,
@@ -160,16 +161,25 @@ export default function HomeScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Call',
-          onPress: () => {
-            // Navigate to emergency-call screen with contact details
-            router.push({
-              pathname: '/emergency-call',
-              params: {
-                contactId: contact.id,
-                contactName: contact.name,
-                contactPhone: contact.phone
-              }
-            });
+          onPress: async () => {
+            try {
+              await Linking.openURL(`tel:${contact.phone}`);
+              
+              // Log the call
+              await supabase
+                .from('call_logs')
+                .insert([{
+                  user_id: user?.id,
+                  contact_id: contact.id,
+                  phone_number: contact.phone,
+                  contact_name: contact.name,
+                  call_type: 'outgoing',
+                  is_emergency: contact.contact_type !== 'personal',
+                }]);
+            } catch (error) {
+              console.error('Error making call:', error);
+              Alert.alert('Error', 'Unable to make call');
+            }
           },
         },
       ]
@@ -433,7 +443,78 @@ export default function HomeScreen() {
           </View>
         </View>
 
-
+        {/* Safety Tips Section */}
+        <View style={{ padding: 20 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Text style={{ 
+              fontSize: 20, 
+              fontWeight: 'bold', 
+              color: '#1F2937'
+            }}>
+              Safety Tips
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.push('/safety-tips')}
+              style={{
+                backgroundColor: '#7C3AED',
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 8,
+              }}
+            >
+              <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>
+                View All
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {safetyTips.slice(0, 3).map((tip) => (
+              <TouchableOpacity
+                key={tip.id}
+                onPress={() => setSelectedTip(tip)}
+                style={{
+                  backgroundColor: 'white',
+                  width: width * 0.7,
+                  borderRadius: 16,
+                  padding: 16,
+                  marginRight: 12,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 3,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                  <View style={{
+                    backgroundColor: '#7C3AED20',
+                    padding: 8,
+                    borderRadius: 8,
+                    marginRight: 12
+                  }}>
+                    <Ionicons name={tip.icon as any} size={20} color="#7C3AED" />
+                  </View>
+                  <Text style={{ 
+                    fontSize: 16, 
+                    fontWeight: 'bold', 
+                    color: '#1F2937',
+                    flex: 1
+                  }}>
+                    {tip.title}
+                  </Text>
+                </View>
+                <Text style={{ 
+                  fontSize: 14, 
+                  color: '#6B7280',
+                  lineHeight: 20
+                }}>
+                  {tip.description.substring(0, 80)}...
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
         {/* Emergency Contacts */}
         <View style={{ padding: theme.spacing.md }}>
@@ -558,7 +639,40 @@ export default function HomeScreen() {
           </View>
         </View>
 
-
+        {/* Safety Tips */}
+        <View style={{ padding: theme.spacing.md }}>
+          <Text style={{ 
+            fontSize: 20, 
+            fontWeight: 'bold', 
+            color: theme.colors.text, 
+            marginBottom: theme.spacing.md 
+          }}>
+            Safety Tips
+          </Text>
+          
+          <View
+            style={{
+              backgroundColor: theme.colors.card,
+              borderRadius: theme.borderRadius.lg,
+              padding: theme.spacing.md,
+              shadowColor: theme.colors.shadowColor,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: theme.colors.shadowOpacity,
+              shadowRadius: 4,
+              elevation: 3,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.sm }}>
+              <Ionicons name="bulb" size={20} color={theme.colors.warning} />
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.colors.text, marginLeft: 8 }}>
+                Today's Safety Tip
+              </Text>
+            </View>
+            <Text style={{ fontSize: 14, color: theme.colors.textSecondary, lineHeight: 20 }}>
+              Always share your location with trusted contacts when traveling alone, especially during late hours. Keep your phone charged and easily accessible.
+            </Text>
+          </View>
+        </View>
 
         {/* Quick Stats */}
         <View style={{ padding: theme.spacing.md, paddingBottom: 100 }}>
@@ -621,7 +735,173 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
+      {/* Safety Tips Modal */}
+      <Modal
+        visible={showSafetyTips}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+          <LinearGradient
+            colors={['#7C3AED', '#A855F7', '#C084FC']}
+            style={{ paddingTop: 60, paddingBottom: 30, paddingHorizontal: 20 }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ fontSize: 28, fontWeight: 'bold', color: 'white' }}>
+                Safety Tips
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowSafetyTips(false)}
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  padding: 10,
+                  borderRadius: 10
+                }}
+              >
+                <Ionicons name="close" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
 
+          <ScrollView style={{ flex: 1, padding: 20 }}>
+            {safetyTips.map((tip) => (
+              <TouchableOpacity
+                key={tip.id}
+                onPress={() => setSelectedTip(tip)}
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: 16,
+                  padding: 20,
+                  marginBottom: 16,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 3,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                  <View style={{
+                    backgroundColor: '#7C3AED20',
+                    padding: 12,
+                    borderRadius: 12,
+                    marginRight: 16
+                  }}>
+                    <Ionicons name={tip.icon as any} size={24} color="#7C3AED" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ 
+                      fontSize: 18, 
+                      fontWeight: 'bold', 
+                      color: '#1F2937',
+                      marginBottom: 4
+                    }}>
+                      {tip.title}
+                    </Text>
+                    <Text style={{ 
+                      fontSize: 12, 
+                      color: '#7C3AED',
+                      textTransform: 'uppercase',
+                      fontWeight: '600'
+                    }}>
+                      {tip.category}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={{ 
+                  fontSize: 14, 
+                  color: '#6B7280',
+                  lineHeight: 20
+                }}>
+                  {tip.description}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Individual Tip Detail Modal */}
+      <Modal
+        visible={!!selectedTip}
+        animationType="fade"
+        transparent={true}
+      >
+        {selectedTip && (
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 20
+          }}>
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 20,
+              padding: 24,
+              width: '100%',
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.25,
+              shadowRadius: 20,
+              elevation: 10,
+            }}>
+              <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                <View style={{
+                  backgroundColor: '#7C3AED20',
+                  padding: 16,
+                  borderRadius: 16,
+                  marginBottom: 16
+                }}>
+                  <Ionicons name={selectedTip.icon as any} size={32} color="#7C3AED" />
+                </View>
+                <Text style={{ 
+                  fontSize: 20, 
+                  fontWeight: 'bold', 
+                  color: '#1F2937',
+                  textAlign: 'center',
+                  marginBottom: 8
+                }}>
+                  {selectedTip.title}
+                </Text>
+                <Text style={{ 
+                  fontSize: 12, 
+                  color: '#7C3AED',
+                  textTransform: 'uppercase',
+                  fontWeight: '600'
+                }}>
+                  {selectedTip.category}
+                </Text>
+              </View>
+              
+              <Text style={{ 
+                fontSize: 16, 
+                color: '#374151',
+                lineHeight: 24,
+                textAlign: 'center',
+                marginBottom: 24
+              }}>
+                {selectedTip.description}
+              </Text>
+              
+              <TouchableOpacity
+                onPress={() => setSelectedTip(null)}
+                style={{
+                  backgroundColor: '#7C3AED',
+                  padding: 16,
+                  borderRadius: 12,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                  Got it!
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </Modal>
     </View>
   );
 }

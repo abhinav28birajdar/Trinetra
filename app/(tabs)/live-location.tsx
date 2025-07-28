@@ -4,13 +4,523 @@ import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Dimensions, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
-import { useAuth } from '../../store/auth';
-const { width, height } = Dimensions.get('window');export default function LiveLocationScreen() {  const { user, profile } = useAuth();  const [isSharing, setIsSharing] = useState(false);  const [selectedDuration, setSelectedDuration] = useState('1h');  const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null);  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);  const emergencyContacts = [    { id: '1', name: 'Father', phone: '+1234567890', color: '#8B5CF6' },    { id: '2', name: 'Mother', phone: '+1234567891', color: '#EC4899' },    { id: '3', name: 'Police', phone: '100', color: '#3B82F6' },    { id: '4', name: 'Women Safety', phone: '1091', color: '#F59E0B' },  ];  const durations = [    { id: '15m', label: '15 min', value: '15m' },    { id: '30m', label: '30 min', value: '30m' },    { id: '1h', label: '1 hour', value: '1h' },    { id: '2h', label: '2 hours', value: '2h' },    { id: 'continuous', label: 'Continuous', value: 'continuous' },  ];  useEffect(() => {    getCurrentLocation();  }, []);  const getCurrentLocation = async () => {    try {      const { status } = await Location.requestForegroundPermissionsAsync();      if (status !== 'granted') {        Alert.alert('Permission Denied', 'Location permission is required to share your location.');        return;      }      const location = await Location.getCurrentPositionAsync({        accuracy: Location.Accuracy.High,      });      setCurrentLocation(location);    } catch (error) {      console.error('Error getting location:', error);      Alert.alert('Error', 'Unable to get your current location.');    }  };  const toggleContactSelection = (contactId: string) => {    setSelectedContacts(prev =>       prev.includes(contactId)         ? prev.filter(id => id !== contactId)        : [...prev, contactId]    );  };  const startLocationSharing = () => {    if (selectedContacts.length === 0) {      Alert.alert('Select Contacts', 'Please select at least one contact to share your location with.');      return;    }    setIsSharing(true);    Alert.alert(      'Location Sharing Started',      `Your live location is now being shared with ${selectedContacts.length} contact(s) for ${selectedDuration}.`    );  };  const stopLocationSharing = () => {    setIsSharing(false);    Alert.alert('Location Sharing Stopped', 'Your location is no longer being shared.');  };  return (    <View style={{ flex: 1 }}>      <LinearGradient        colors={['#8B5CF6', '#A855F7']}        style={{ flex: 1 }}        start={{ x: 0, y: 0 }}        end={{ x: 0, y: 0.3 }}      >        {/* Header */}        <View style={{ paddingTop: 50, paddingHorizontal: 24, paddingBottom: 20 }}>          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>            <TouchableOpacity               onPress={() => router.back()}              style={{                 width: 40,                 height: 40,                 borderRadius: 20,                 backgroundColor: 'rgba(255,255,255,0.2)',                 alignItems: 'center',                 justifyContent: 'center'               }}            >              <Ionicons name="arrow-back" size={24} color="white" />            </TouchableOpacity>                        <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>              Location Share            </Text>                        <View style={{ width: 40 }} />          </View>          {/* Live Location Toggle */}          <View style={{             backgroundColor: 'rgba(255,255,255,0.1)',             borderRadius: 16,             padding: 20,            flexDirection: 'row',            alignItems: 'center',            justifyContent: 'space-between'          }}>            <View style={{ flex: 1 }}>              <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>                Live Location Sharing              </Text>              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>                {isSharing ? 'Currently sharing your location' : 'Share your real-time location'}              </Text>            </View>            <Switch              value={isSharing}              onValueChange={isSharing ? stopLocationSharing : startLocationSharing}              trackColor={{ false: 'rgba(255,255,255,0.3)', true: 'rgba(255,255,255,0.8)' }}              thumbColor={isSharing ? '#8B5CF6' : '#F3F4F6'}            />          </View>        </View>        {/* Main Content */}        <View style={{           flex: 1,           backgroundColor: 'white',           borderTopLeftRadius: 30,           borderTopRightRadius: 30,          paddingTop: 30        }}>          <ScrollView showsVerticalScrollIndicator={false}>            {/* Map Preview */}            <View style={{ paddingHorizontal: 24, marginBottom: 30 }}>              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1F2937', marginBottom: 15 }}>                Live Location              </Text>                            <View style={{                 height: 200,                 backgroundColor: '#F3F4F6',                 borderRadius: 20,                alignItems: 'center',                justifyContent: 'center',                marginBottom: 15,                borderWidth: 2,                borderColor: isSharing ? '#8B5CF6' : '#E5E7EB'              }}>                <View style={{                   width: 80,                  height: 80,                  borderRadius: 40,                  backgroundColor: isSharing ? '#8B5CF6' : '#9CA3AF',                  alignItems: 'center',                  justifyContent: 'center',                  marginBottom: 15                }}>                  <Ionicons name="location" size={40} color="white" />                </View>                <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>                  {isSharing ? 'Sharing Live Location' : 'Your Location'}                </Text>                <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center' }}>                  {currentLocation                     ? `Lat: ${currentLocation.coords.latitude.toFixed(4)}, Long: ${currentLocation.coords.longitude.toFixed(4)}`                    : 'Getting location...'                  }                </Text>              </View>              {currentLocation && (                <View style={{                   backgroundColor: isSharing ? '#EFF6FF' : '#F9FAFB',                  borderRadius: 12,                  padding: 16,                  borderWidth: 1,                  borderColor: isSharing ? '#DBEAFE' : '#F3F4F6'                }}>                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>                    <Ionicons                       name={isSharing ? 'radio-outline' : 'location-outline'}                       size={20}                       color={isSharing ? '#3B82F6' : '#6B7280'}                       style={{ marginRight: 8 }}                    />                    <Text style={{                       fontSize: 14,                       fontWeight: '600',                      color: isSharing ? '#1E40AF' : '#374151'                    }}>                      {isSharing ? 'Live sharing active' : 'Location ready to share'}                    </Text>                  </View>                  <Text style={{                     fontSize: 12,                     color: isSharing ? '#1E40AF' : '#6B7280',                    lineHeight: 16                  }}>                    Accuracy: ±{currentLocation.coords.accuracy?.toFixed(0)}m                  </Text>                </View>              )}            </View>            {/* Duration Selection */}            <View style={{ paddingHorizontal: 24, marginBottom: 30 }}>              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1F2937', marginBottom: 15 }}>                Sharing Duration              </Text>                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>                {durations.map((duration) => (                  <TouchableOpacity                    key={duration.id}                    onPress={() => setSelectedDuration(duration.value)}                    style={{                       width: '30%',                      backgroundColor: selectedDuration === duration.value ? '#8B5CF6' : 'white',                      borderWidth: 2,                      borderColor: selectedDuration === duration.value ? '#8B5CF6' : '#E5E7EB',                      borderRadius: 12,                      paddingVertical: 12,                      alignItems: 'center',                      marginBottom: 10                    }}                  >                    <Text style={{                       fontSize: 14,                       fontWeight: '600',                      color: selectedDuration === duration.value ? 'white' : '#374151'                    }}>                      {duration.label}                    </Text>                  </TouchableOpacity>                ))}              </View>            </View>            {/* Emergency Contacts */}            <View style={{ paddingHorizontal: 24, marginBottom: 30 }}>              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1F2937', marginBottom: 15 }}>                Share With              </Text>                            <View>                {emergencyContacts.map((contact) => (                  <TouchableOpacity                    key={contact.id}                    onPress={() => toggleContactSelection(contact.id)}                    style={{                       backgroundColor: 'white',                      borderRadius: 12,                      padding: 16,                      marginBottom: 12,                      flexDirection: 'row',                      alignItems: 'center',                      borderWidth: 2,                      borderColor: selectedContacts.includes(contact.id) ? contact.color : '#F3F4F6',                      shadowColor: '#000',                      shadowOffset: { width: 0, height: 2 },                      shadowOpacity: 0.05,                      shadowRadius: 4,                      elevation: 2                    }}                  >                    <View style={{                       width: 50,                      height: 50,                      borderRadius: 25,                      backgroundColor: `${contact.color}15`,                      alignItems: 'center',                      justifyContent: 'center',                      marginRight: 15                    }}>                      <Text style={{                         fontSize: 18,                         fontWeight: 'bold',                         color: contact.color                       }}>                        {contact.name.charAt(0)}                      </Text>                    </View>                                        <View style={{ flex: 1 }}>                      <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 2 }}>                        {contact.name}                      </Text>                      <Text style={{ fontSize: 14, color: '#6B7280' }}>                        {contact.phone}                      </Text>                    </View>                    <View style={{                       width: 24,                      height: 24,                      borderRadius: 12,                      borderWidth: 2,                      borderColor: selectedContacts.includes(contact.id) ? contact.color : '#D1D5DB',                      backgroundColor: selectedContacts.includes(contact.id) ? contact.color : 'transparent',                      alignItems: 'center',                      justifyContent: 'center'                    }}>                      {selectedContacts.includes(contact.id) && (                        <Ionicons name="checkmark" size={14} color="white" />                      )}                    </View>                  </TouchableOpacity>                ))}              </View>            </View>            {/* Action Button */}            {!isSharing && (              <View style={{ paddingHorizontal: 24, marginBottom: 30 }}>                <TouchableOpacity                  onPress={startLocationSharing}                  disabled={selectedContacts.length === 0}                  style={{                     backgroundColor: selectedContacts.length > 0 ? '#8B5CF6' : '#D1D5DB',                    borderRadius: 15,                    paddingVertical: 16,                    alignItems: 'center',                    shadowColor: selectedContacts.length > 0 ? '#8B5CF6' : 'transparent',                    shadowOffset: { width: 0, height: 4 },                    shadowOpacity: 0.3,                    shadowRadius: 8,                    elevation: 5                  }}                >                  <Text style={{                     color: 'white',                     fontSize: 18,                     fontWeight: 'bold'                   }}>                    Start Sharing Location                  </Text>                </TouchableOpacity>
+import { supabase } from '../../lib/supabase';
+import { useAuthStore } from '../../store/auth';
+
+const { width, height } = Dimensions.get('window');
+
+export default function LiveLocationScreen() {
+  const { user, profile } = useAuthStore();
+  const [isSharing, setIsSharing] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState('1h');
+  const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null);
+  const [currentAddress, setCurrentAddress] = useState<string>('');
+  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+
+  useEffect(() => {
+    getCurrentLocation();
+  }, []);
+
+  const emergencyContacts = [
+    { id: '1', name: 'Father', phone: '+1234567890', color: '#8B5CF6' },
+    { id: '2', name: 'Mother', phone: '+1234567891', color: '#EC4899' },
+    { id: '3', name: 'Police', phone: '100', color: '#3B82F6' },
+    { id: '4', name: 'Women Safety', phone: '1091', color: '#F59E0B' },
+  ];
+
+  const durations = [
+    { id: '15m', label: '15 Minutes', value: '15m', description: 'Quick check-in' },
+    { id: '30m', label: '30 Minutes', value: '30m', description: 'Short duration' },
+    { id: '1h', label: '1 Hour', value: '1h', description: 'Standard sharing' },
+    { id: '2h', label: '2 Hours', value: '2h', description: 'Extended time' },
+    { id: 'continuous', label: 'Continuous', value: 'continuous', description: 'Until stopped' },
+  ];
+
+  const sendLocationMessage = async () => {
+    if (!currentLocation) {
+      Alert.alert('Error', 'Unable to get current location');
+      return;
+    }
+
+    if (selectedContacts.length === 0) {
+      Alert.alert('Select Contacts', 'Please select at least one contact to share your location with.');
+      return;
+    }
+
+    try {
+      // Save location share to database
+      if (user) {
+        const { data, error } = await supabase
+          .from('location_shares')
+          .insert({
+            user_id: user.id,
+            session_name: 'Manual Share',
+            shared_with: selectedContacts,
+            duration_minutes: selectedDuration === 'continuous' ? null : parseInt(selectedDuration.replace('m', '')) * 60,
+            is_active: true
+          })
+          .select();
+
+        if (error) {
+          console.error('Error saving location share:', error);
+          Alert.alert('Error', 'Failed to save location share');
+          return;
+        }
+
+        // Also save the current location point
+        const { error: pointError } = await supabase
+          .from('location_points')
+          .insert({
+            user_id: user.id,
+            session_id: data[0].id,
+            location: `POINT(${currentLocation.coords.longitude} ${currentLocation.coords.latitude})`,
+            accuracy: currentLocation.coords.accuracy,
+            altitude: currentLocation.coords.altitude,
+            speed: currentLocation.coords.speed,
+            heading: currentLocation.coords.heading,
+            battery_level: 100, // Mock battery level
+            is_emergency: false
+          });
+
+        if (pointError) {
+          console.error('Error saving location point:', pointError);
+        }
+      }
+
+      const locationMessage = `📍 My current location:
+Latitude: ${currentLocation.coords.latitude.toFixed(6)}
+Longitude: ${currentLocation.coords.longitude.toFixed(6)}
+Address: ${currentAddress || 'Address not available'}
+
+Shared at: ${new Date().toLocaleString()}`;
+      
+      // In a real app, this would send the message to the selected contacts
+      Alert.alert('Success', 'Location shared successfully with selected contacts!');
+      setIsSharing(true);
+    } catch (error) {
+      console.error('Error in sendLocationMessage:', error);
+      Alert.alert('Error', 'Failed to share location');
+    }
+  };
+
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to share your location.');
+        return;
+      }
+      
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      setCurrentLocation(location);
+      
+      // Get address from coordinates
+      try {
+        const address = await Location.reverseGeocodeAsync({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        
+        if (address && address.length > 0) {
+          const addr = address[0];
+          const formattedAddress = [
+            addr.name,
+            addr.street,
+            addr.city,
+            addr.region,
+            addr.country
+          ].filter(Boolean).join(', ');
+          setCurrentAddress(formattedAddress || 'Address not available');
+        }
+      } catch (addressError) {
+        console.error('Error getting address:', addressError);
+        setCurrentAddress('Address not available');
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      Alert.alert('Error', 'Unable to get your current location.');
+    }
+  };
+
+  const toggleContactSelection = (contactId: string) => {
+    setSelectedContacts(prev =>
+      prev.includes(contactId)
+        ? prev.filter(id => id !== contactId)
+        : [...prev, contactId]
+    );
+  };
+
+  const stopLocationSharing = async () => {
+    if (user) {
+      try {
+        // Update all active location shares to inactive
+        const { error } = await supabase
+          .from('location_shares')
+          .update({ is_active: false })
+          .eq('user_id', user.id)
+          .eq('is_active', true);
+
+        if (error) {
+          console.error('Error stopping location sharing:', error);
+          Alert.alert('Error', 'Failed to stop location sharing');
+          return;
+        }
+      } catch (error) {
+        console.error('Error in stopLocationSharing:', error);
+      }
+    }
+    
+    setIsSharing(false);
+    setSelectedContacts([]);
+    Alert.alert('Location Sharing Stopped', 'Your location is no longer being shared.');
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <LinearGradient
+          colors={['#7C3AED', '#A855F7', '#C084FC']}
+          style={{ paddingTop: 60, paddingBottom: 30, paddingHorizontal: 20 }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                padding: 10,
+                borderRadius: 10
+              }}
+            >
+              <Ionicons name="arrow-back" size={24} color="white" />
+            </TouchableOpacity>
+            
+            <Text style={{ fontSize: 28, fontWeight: 'bold', color: 'white' }}>
+              Location Share
+            </Text>
+            
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/contacts')}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                padding: 10,
+                borderRadius: 10
+              }}
+            >
+              <Ionicons name="people" size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Current Location Display */}
+          {currentLocation && (
+            <View style={{
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              borderRadius: 16,
+              padding: 16,
+              marginTop: 20
+            }}>
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>
+                📍 Current Location
+              </Text>
+              {currentAddress && (
+                <Text style={{ color: 'white', fontSize: 14, marginBottom: 4 }}>
+                  {currentAddress}
+                </Text>
+              )}
+              <Text style={{ color: 'white', fontSize: 12, opacity: 0.8 }}>
+                Lat: {currentLocation.coords.latitude.toFixed(6)}, Long: {currentLocation.coords.longitude.toFixed(6)}
+              </Text>
+              
+              <TouchableOpacity
+                onPress={getCurrentLocation}
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  padding: 6,
+                  alignSelf: 'flex-start',
+                  marginTop: 8,
+                  flexDirection: 'row',
+                  alignItems: 'center'
+                }}
+              >
+                <Ionicons name="refresh" size={14} color="white" style={{ marginRight: 4 }} />
+                <Text style={{ color: 'white', fontSize: 12 }}>Refresh</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </LinearGradient>
+
+        {/* Main Content */}
+        <View style={{ paddingHorizontal: 20 }}>
+          {/* Status Bar */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: 'white',
+            borderRadius: 16,
+            padding: 16,
+            marginTop: -20,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: isSharing ? '#DEF7EC' : '#F3F4F6',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 12
+              }}>
+                <Ionicons 
+                  name={isSharing ? "location" : "location-outline"} 
+                  size={20} 
+                  color={isSharing ? '#059669' : '#6B7280'} 
+                />
               </View>
-            )}
-          </ScrollView>
+              <View>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1F2937' }}>
+                  Location Sharing
+                </Text>
+                <Text style={{ fontSize: 12, color: '#6B7280' }}>
+                  {isSharing ? 'Your location is being shared' : 'Not currently sharing'}
+                </Text>
+              </View>
+            </View>
+            
+            <Switch
+              value={isSharing}
+              onValueChange={(value) => {
+                if (value) {
+                  sendLocationMessage();
+                } else {
+                  stopLocationSharing();
+                }
+              }}
+              trackColor={{ false: '#E5E7EB', true: '#10B981' }}
+            />
+          </View>
+
+          {/* Duration Selection */}
+          <View style={{ marginTop: 24 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1F2937', marginBottom: 12 }}>
+              Sharing Duration
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              {durations.map(duration => (
+                <TouchableOpacity
+                  key={duration.id}
+                  onPress={() => setSelectedDuration(duration.value)}
+                  style={{
+                    width: (width - 50) / 2,
+                    backgroundColor: selectedDuration === duration.value ? '#EFF6FF' : 'white',
+                    borderWidth: 1,
+                    borderColor: selectedDuration === duration.value ? '#3B82F6' : '#E5E7EB',
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 10,
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: 'bold',
+                    color: selectedDuration === duration.value ? '#2563EB' : '#1F2937'
+                  }}>
+                    {duration.label}
+                  </Text>
+                  <Text style={{
+                    fontSize: 12,
+                    color: selectedDuration === duration.value ? '#3B82F6' : '#6B7280',
+                    marginTop: 2
+                  }}>
+                    {duration.description}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Contact Selection */}
+          <View style={{ marginTop: 24, marginBottom: 100 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1F2937', marginBottom: 12 }}>
+              Share With
+            </Text>
+            
+            {emergencyContacts.map(contact => (
+              <TouchableOpacity
+                key={contact.id}
+                onPress={() => toggleContactSelection(contact.id)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: 'white',
+                  borderWidth: 1,
+                  borderColor: selectedContacts.includes(contact.id) ? '#3B82F6' : '#E5E7EB',
+                  borderRadius: 12,
+                  padding: 12,
+                  marginBottom: 10,
+                }}
+              >
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: contact.color + '20',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 12
+                }}>
+                  <Text style={{ color: contact.color, fontWeight: 'bold' }}>
+                    {contact.name.charAt(0)}
+                  </Text>
+                </View>
+                
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1F2937' }}>
+                    {contact.name}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#6B7280' }}>
+                    {contact.phone}
+                  </Text>
+                </View>
+                
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: selectedContacts.includes(contact.id) ? '#3B82F6' : '#D1D5DB',
+                  backgroundColor: selectedContacts.includes(contact.id) ? '#3B82F6' : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  {selectedContacts.includes(contact.id) && (
+                    <Ionicons name="checkmark" size={14} color="white" />
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+            
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/contacts')}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'white',
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                borderStyle: 'dashed',
+                borderRadius: 12,
+                padding: 12,
+                marginTop: 8
+              }}
+            >
+              <Ionicons name="add-circle-outline" size={18} color="#6B7280" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 14, color: '#6B7280' }}>Add More Contacts</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </LinearGradient>
+      </ScrollView>
+
+      {/* Share Location Button (Fixed at bottom) */}
+      {!isSharing && (
+        <View style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: 20,
+          backgroundColor: 'white',
+          borderTopWidth: 1,
+          borderTopColor: '#E5E7EB',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 5,
+        }}>
+          <TouchableOpacity
+            onPress={sendLocationMessage}
+            disabled={selectedContacts.length === 0}
+            style={{
+              backgroundColor: selectedContacts.length > 0 ? '#7C3AED' : '#D1D5DB',
+              borderRadius: 12,
+              padding: 16,
+              alignItems: 'center'
+            }}
+          >
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
+              Start Sharing Location
+            </Text>
+          </TouchableOpacity>
+
+          {/* Quick Share Button */}
+          <TouchableOpacity
+            onPress={sendLocationMessage}
+            disabled={selectedContacts.length === 0}
+            style={{
+              backgroundColor: selectedContacts.length > 0 ? '#10B981' : '#D1D5DB',
+              borderRadius: 12,
+              padding: 16,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              marginTop: 12
+            }}
+          >
+            <Ionicons 
+              name="send" 
+              size={18} 
+              color="white" 
+              style={{ marginRight: 8 }} 
+            />
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
+              Send Current Location
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Stop Sharing Button (When sharing is active) */}
+      {isSharing && (
+        <View style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: 20,
+          backgroundColor: 'white',
+          borderTopWidth: 1,
+          borderTopColor: '#E5E7EB',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 5,
+        }}>
+          <TouchableOpacity
+            onPress={stopLocationSharing}
+            style={{
+              backgroundColor: '#EF4444',
+              borderRadius: 12,
+              padding: 16,
+              alignItems: 'center'
+            }}
+          >
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
+              Stop Sharing Location
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
