@@ -170,17 +170,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: true });
       console.log('Attempting to sign up with Supabase...');
       
-      // Test basic connectivity first
-      try {
-        console.log('Testing basic internet connectivity...');
-        const testResponse = await fetch('https://httpbin.org/get');
-        console.log('Internet connectivity test status:', testResponse.status);
-      } catch (connectivityError) {
-        console.error('Connectivity test failed:', connectivityError);
-        return { error: new Error('Network connectivity issue. Please check your internet connection.') };
+      // Import the connection check function
+      const { ensureSupabaseConnection } = await import('../lib/supabase');
+      
+      // Test connection before proceeding
+      const isConnected = await ensureSupabaseConnection();
+      if (!isConnected) {
+        console.error('Supabase connection failed - check network and credentials');
+        return { error: new Error('Cannot connect to the server. Please check your internet connection and try again.') };
       }
       
       // Create the user account
+      if (!supabase?.auth) {
+        console.error("Supabase auth client not available");
+        return { error: new Error('Authentication service is not available. Please try again later.') };
+      }
+      
+      console.log("About to sign up user with email:", email);
+      console.log("Supabase client available:", !!supabase);
+      console.log("Supabase auth available:", !!supabase.auth);
+      
+      // Sign up the user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -194,27 +204,54 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       if (error) {
         console.error("Sign up error:", error.message);
+        if (error.message === "Database error saving new user") {
+          console.error("This is likely a schema issue. Try running the updated schema SQL.");
+        }
         return { error };
       }
-      
+    
       console.log("User signed up:", data.user?.id);
       
       // Manually create profile record - important since DB triggers might fail
       if (data.user?.id) {
         try {
+          // Verify profile table exists
+          const { error: tableCheckError } = await supabase
+            .from('profiles')
+            .select('id')
+            .limit(1);
+            
+          if (tableCheckError) {
+            console.error("Error checking profiles table:", tableCheckError.message);
+            console.error("Table check error details:", tableCheckError.details);
+            return { error: new Error('Database configuration issue. Please contact support.') };
+          }
+          
+          // Use a simpler profile payload with only essential fields
+          const minimalProfilePayload = {
+            id: data.user.id,
+            email: email,
+            full_name: fullName || email.split('@')[0]
+          };
+          
+          console.log("Creating profile with minimal data:", JSON.stringify(minimalProfilePayload));
+          
           const { error: profileError } = await supabase
             .from('profiles')
-            .insert({
-              id: data.user.id,
-              email: email,
-              full_name: fullName || email.split('@')[0],
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
+            .insert(minimalProfilePayload);
           
           if (profileError) {
             console.error("Error creating profile:", profileError.message);
-            // Continue anyway, as this is not critical for authentication
+            console.error("Error details:", profileError.details);
+            console.error("Error hint:", profileError.hint);
+            
+            // Log the full error object for debugging
+            console.error("Full profile error:", JSON.stringify(profileError));
+            
+            // Continue anyway, but track the error
+            // This part is non-critical for auth flow - the user can update their profile later
+          } else {
+            console.log("Profile created successfully!");
           }
         } catch (profileError) {
           console.error("Manual profile creation failed:", profileError);
@@ -225,11 +262,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return {};
     } catch (error) {
       console.error("Sign up catch error:", error);
+      if (error instanceof Error) {
+        console.error("Error name:", error.name);
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      
+      // Check if it's a network error
+      if (error instanceof TypeError && error.message.includes('network')) {
+        return { error: new Error('Network error. Please check your internet connection and try again.') };
+      }
+      
+      // Check if it might be a CORS error
+      if (error instanceof Error && error.message.includes('CORS')) {
+        return { error: new Error('Cross-origin request blocked. This might be a configuration issue.') };
+      }
+      
       return { error: error instanceof Error ? error : new Error('Unknown signup error') };
     } finally {
       set({ isLoading: false });
     }
-  }
+  },
 }));
 
 // Initial call to setup listener when store is created

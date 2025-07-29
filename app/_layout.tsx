@@ -1,30 +1,30 @@
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from '../components/ThemeProvider';
 import '../global.css';
 import { useAuthStore } from '../store/auth';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+// Immediately hide the splash screen
+SplashScreen.hideAsync().catch(() => {
+  // Ignore errors
+  console.log('Failed to hide splash screen');
+});
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { session, isLoading } = useAuthStore();
+  const segments = useSegments();
+  const hasNavigated = useRef(false);
+  const initialNavigation = useRef(false);
   
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
 
   // Initialize auth only once when component mounts
   useEffect(() => {
@@ -35,17 +35,35 @@ export default function RootLayout() {
     initAuth();
   }, []); // Empty dependency array - run only once
 
+  // Reset navigation flag when changing routes
   useEffect(() => {
-    if (!isLoading) {
-      if (session) {
-        // User is authenticated, redirect to main app
+    // Reset the navigation flag for future navigations
+    return () => {
+      initialNavigation.current = true;
+    };
+  }, [segments]);
+
+  // Handle navigation based on auth state - with protection against infinite redirects
+  useEffect(() => {
+    // Only run navigation if auth is loaded and we haven't navigated yet
+    if (!isLoading && !initialNavigation.current) {
+      initialNavigation.current = true; // Mark that we've done initial navigation
+      
+      const currentRoute = segments[0];
+      const isAuthRoute = currentRoute === 'login' || 
+                          currentRoute === 'register' || 
+                          currentRoute === 'welcome' || 
+                          currentRoute === 'forgot-password';
+      
+      if (session && !currentRoute?.includes('tabs')) {
+        console.log("User is authenticated, redirecting to home");
         router.replace('/(tabs)');
-      } else {
-        // User is not authenticated, stay on auth screens
-        // The initial route will be handled by the router
+      } else if (!session && !isAuthRoute) {
+        console.log("User is not authenticated, redirecting to login");
+        router.replace('/login');
       }
     }
-  }, [session, isLoading]);
+  }, [session, isLoading, segments]);
 
   if (!loaded || isLoading) {
     return null;

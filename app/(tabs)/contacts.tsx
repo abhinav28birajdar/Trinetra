@@ -1,19 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Alert,
-    Dimensions,
-    FlatList,
-    Linking,
-    Modal,
-    RefreshControl,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  FlatList,
+  Linking,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/auth';
@@ -31,12 +30,7 @@ interface Contact {
 
 export default function ContactsScreen() {
   const { user } = useAuthStore();
-  const [contacts, setContacts] = useState<Contact[]>([
-    { id: '1', name: 'Father', phone: '+1234567890', relationship: 'Father', color: '#EF4444', is_emergency: true },
-    { id: '2', name: 'Mother', phone: '+1234567891', relationship: 'Mother', color: '#10B981', is_emergency: true },
-    { id: '3', name: 'Brother', phone: '+1234567892', relationship: 'Brother', color: '#3B82F6', is_emergency: false },
-    { id: '4', name: 'Best Friend', phone: '+1234567893', relationship: 'Friend', color: '#8B5CF6', is_emergency: false },
-  ]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -46,6 +40,44 @@ export default function ContactsScreen() {
     relationship: '',
     is_emergency: false
   });
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch contacts from database
+  const fetchContacts = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('emergency_contacts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name');
+        
+      if (error) {
+        console.error('Error fetching contacts:', error);
+        Alert.alert('Error', 'Failed to load contacts');
+      } else {
+        const formattedContacts = data.map(contact => ({
+          id: contact.id,
+          name: contact.name,
+          phone: contact.phone,
+          relationship: contact.relationship,
+          color: contact.avatar_color || '#' + Math.floor(Math.random()*16777215).toString(16),
+          is_emergency: contact.is_primary || contact.is_emergency_service
+        }));
+        setContacts(formattedContacts);
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching contacts:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchContacts();
+  }, [user]);
 
   const filteredContacts = contacts.filter(contact => 
     contact && 
@@ -91,7 +123,12 @@ export default function ContactsScreen() {
     );
   };
 
-  const deleteContact = (contactId: string) => {
+  const deleteContact = async (contactId: string) => {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to delete contacts');
+      return;
+    }
+    
     Alert.alert(
       "Delete Contact",
       "Are you sure you want to delete this contact?",
@@ -100,39 +137,93 @@ export default function ContactsScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            setContacts(prev => prev.filter(contact => contact.id !== contactId));
+          onPress: async () => {
+            try {
+              // Delete from Supabase
+              const { error } = await supabase
+                .from('emergency_contacts')
+                .delete()
+                .eq('id', contactId)
+                .eq('user_id', user.id);
+                
+              if (error) {
+                console.error('Error deleting contact:', error);
+                Alert.alert('Error', 'Failed to delete contact from database');
+                return;
+              }
+              
+              // Update local state
+              setContacts(prev => prev.filter(contact => contact.id !== contactId));
+              Alert.alert('Success', 'Contact deleted successfully');
+            } catch (err) {
+              console.error('Unexpected error deleting contact:', err);
+              Alert.alert('Error', 'An unexpected error occurred');
+            }
           }
         }
       ]
     );
   };
 
-  const addContact = () => {
+  const addContact = async () => {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to add contacts');
+      return;
+    }
+    
     if (!newContact.name || !newContact.phone) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
-    const contact: Contact = {
-      id: Date.now().toString(),
-      name: newContact.name,
-      phone: newContact.phone,
-      relationship: newContact.relationship || 'Friend',
-      color: '#' + Math.floor(Math.random()*16777215).toString(16),
-      is_emergency: newContact.is_emergency
-    };
+    try {
+      const contactColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+      
+      // Insert into Supabase
+      const { data, error } = await supabase
+        .from('emergency_contacts')
+        .insert({
+          user_id: user.id,
+          name: newContact.name,
+          phone: newContact.phone,
+          relationship: newContact.relationship || 'Friend',
+          avatar_color: contactColor,
+          is_primary: newContact.is_emergency,
+          contact_type: 'personal'
+        })
+        .select();
 
-    setContacts(prev => [...prev, contact]);
-    setNewContact({ name: '', phone: '', relationship: '', is_emergency: false });
-    setShowAddModal(false);
+      if (error) {
+        console.error('Error adding contact:', error);
+        Alert.alert('Error', 'Failed to add contact to database');
+        return;
+      }
+
+      const newContactData: Contact = {
+        id: data[0].id,
+        name: newContact.name,
+        phone: newContact.phone,
+        relationship: newContact.relationship || 'Friend',
+        color: contactColor,
+        is_emergency: newContact.is_emergency
+      };
+
+      setContacts(prev => [...prev, newContactData]);
+      setNewContact({ name: '', phone: '', relationship: '', is_emergency: false });
+      setShowAddModal(false);
+      
+      Alert.alert('Success', 'Contact added successfully');
+    } catch (err) {
+      console.error('Unexpected error adding contact:', err);
+      Alert.alert('Error', 'An unexpected error occurred');
+    }
   };
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    fetchContacts()
+      .then(() => setRefreshing(false))
+      .catch(() => setRefreshing(false));
   }, []);
 
   const renderContact = useCallback(({ item }: { item: Contact }) => {
