@@ -3,7 +3,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Dimensions, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
-import { useAuth } from '../store/auth';
+import NotificationIcon from '../components/NotificationIcon';
+import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../store/auth';
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,10 +22,45 @@ interface SettingItem {
 }
 
 export default function SettingsScreen() {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuthStore();
   const [pushNotifications, setPushNotifications] = useState(profile?.push_notifications_enabled ?? true);
   const [locationSharing, setLocationSharing] = useState(profile?.location_sharing_enabled ?? true);
   const [emergencyAlerts, setEmergencyAlerts] = useState(true);
+  const [communityNotifications, setCommunityNotifications] = useState(profile?.receive_community_notifications ?? true);
+
+  // Handler to update profile settings in Supabase
+  const updateProfileSetting = async (key: string, value: boolean) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ [key]: value })
+        .eq('id', user.id);
+        
+      if (error) {
+        console.error(`Error updating ${key}:`, error);
+        Alert.alert('Error', `Failed to update ${key} setting`);
+      }
+    } catch (err) {
+      console.error('Unexpected error updating setting:', err);
+    }
+  };
+
+  const handlePushNotificationsToggle = (value: boolean) => {
+    setPushNotifications(value);
+    updateProfileSetting('push_notifications_enabled', value);
+  };
+  
+  const handleLocationSharingToggle = (value: boolean) => {
+    setLocationSharing(value);
+    updateProfileSetting('location_sharing_enabled', value);
+  };
+  
+  const handleCommunityNotificationsToggle = (value: boolean) => {
+    setCommunityNotifications(value);
+    updateProfileSetting('receive_community_notifications', value);
+  };
 
   const handleSignOut = () => {
     Alert.alert(
@@ -44,7 +81,16 @@ export default function SettingsScreen() {
       icon: 'notifications-outline',
       type: 'toggle',
       value: pushNotifications,
-      onToggle: setPushNotifications
+      onToggle: handlePushNotificationsToggle
+    },
+    {
+      id: 'community-notifications',
+      title: 'Community Notifications',
+      subtitle: 'Get notified about new community messages',
+      icon: 'chatbubbles-outline',
+      type: 'toggle',
+      value: communityNotifications,
+      onToggle: handleCommunityNotificationsToggle
     },
     {
       id: 'emergency-alerts',
@@ -62,7 +108,7 @@ export default function SettingsScreen() {
       icon: 'location-outline',
       type: 'toggle',
       value: locationSharing,
-      onToggle: setLocationSharing
+      onToggle: handleLocationSharingToggle
     },
     {
       id: 'profile',
@@ -222,7 +268,7 @@ export default function SettingsScreen() {
               Settings
             </Text>
             
-            <View style={{ width: 40 }} />
+            <NotificationIcon onPress={() => router.push('/notifications')} />
           </View>
         </View>
 

@@ -72,17 +72,17 @@ export default function RegisterScreen() {
           style={{ flex: 1 }}
         >
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-            <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 60 }}>
+            <View style={{ flex: 1, paddingHorizontal: 2, paddingTop: 40 }}>
               {/* Decorative Elements */}
               <View style={{ position: 'absolute', top: 40, right: 20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.1)' }} />
               <View style={{ position: 'absolute', top: 120, left: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.05)' }} />
               
               {/* Header with App Icon */}
-              <View style={{ alignItems: 'center', marginBottom: 40 }}>
+              <View style={{ alignItems: 'center', marginBottom: 30 }}>
                 {/* App Icon */}
                 <View style={{
                   alignItems: 'center',
-                  marginBottom: -15,
+                  marginBottom: -45,
                   shadowColor: '#000',
                   shadowOffset: { width: 0, height: 8 },
                   shadowOpacity: 0.3,
@@ -107,7 +107,7 @@ export default function RegisterScreen() {
               <View style={{ 
                 backgroundColor: 'white', 
                 borderRadius: 20, 
-                padding: 24, 
+                padding: 26, 
                 shadowColor: '#000', 
                 shadowOffset: { width: 0, height: 8 }, 
                 shadowOpacity: 0.15, 
@@ -115,8 +115,8 @@ export default function RegisterScreen() {
                 elevation: 10 
               }}>
                 {/* Full Name Input */}
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{ color: '#374151', fontWeight: '600', marginBottom: 8, fontSize: 14 }}>Full Name</Text>
+                <View style={{ marginBottom: 10 }}>
+                  <Text style={{ color: '#374151', fontWeight: '600', marginBottom: 12, fontSize: 14 }}>Full Name</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#F9FAFB' }}>
                     <Ionicons name="person-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
                     <TextInput

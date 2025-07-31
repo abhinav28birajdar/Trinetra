@@ -5,12 +5,10 @@ import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Linking,
-  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
-  Vibration,
-  View,
+  View
 } from 'react-native';
 import { useTheme } from '../components/ThemeProvider';
 import { supabase } from '../lib/supabase';
@@ -26,17 +24,9 @@ export default function EmergencyCallScreen() {
   
   const [isCallInProgress, setIsCallInProgress] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
-  const [callTimerId, setCallTimerId] = useState<NodeJS.Timer | null>(null);
+  const [callTimerId, setCallTimerId] = useState<number | null>(null);
 
   useEffect(() => {
-    // Vibrate phone to indicate emergency mode
-    if (Platform.OS === 'android') {
-      const pattern = [0, 500, 200, 500];
-      Vibration.vibrate(pattern, true);
-    } else {
-      Vibration.vibrate([0, 500, 200, 500, 200, 500]);
-    }
-
     // Start call immediately
     initiateCall();
 
@@ -45,7 +35,6 @@ export default function EmergencyCallScreen() {
       if (callTimerId) {
         clearInterval(callTimerId);
       }
-      Vibration.cancel();
     };
   }, []);
 

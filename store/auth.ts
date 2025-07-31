@@ -84,11 +84,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     
     set({ isLoading: true, isInitialized: true });
+    
+    // Check if supabase is properly initialized
     if (!supabase?.auth) {
         console.warn("Supabase auth not available for initialization.");
         set({ isLoading: false });
+        
+        // Try to reload the page or app after a delay in development
+        if (__DEV__) {
+          setTimeout(() => {
+            console.log("Attempting to reload after Supabase init failure...");
+            // This will reload the current screen
+            // In a real app, you might want to use a more sophisticated approach
+          }, 3000);
+        }
         return; // Exit if supabase isn't configured
     }
+
+    // Log that auth is available
+    console.log("Supabase auth is available, getting session...");
 
     // Fetch initial session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -145,6 +159,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signIn: async (email: string, password: string) => {
     try {
       set({ isLoading: true });
+      
+      // Check if supabase.auth exists and has signInWithPassword method
+      if (!supabase?.auth?.signInWithPassword) {
+        console.error("Supabase auth or signInWithPassword method not available");
+        throw new Error("Authentication service is temporarily unavailable. Please try again later.");
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,

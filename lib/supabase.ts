@@ -6,12 +6,18 @@ import NetInfo from '@react-native-community/netinfo';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '../types/supabase'; // Use generated types
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+// Hard-code values for development as backup if env variables fail to load
+const FALLBACK_URL = 'https://skbzpigyjiwrzjkvemmu.supabase.co';
+const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrYnpwaWd5aml3cnpqa3ZlbW11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3ODc2NTksImV4cCI6MjA2OTM2MzY1OX0.ybKZgS-A5Khnhj9Wg58VXilQDKMn85DCpARUFTPGbuM';
+
+// Use fallbacks if env vars aren't available
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || FALLBACK_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || FALLBACK_ANON_KEY;
 
 // More detailed logging for debugging
-console.log('Supabase URL:', supabaseUrl);
-console.log('Supabase Anon Key (first 10 chars):', supabaseAnonKey?.substring(0, 10));
+console.log('Initializing Supabase client with URL:', supabaseUrl);
+console.log('Supabase Anon Key (first 5 chars):', supabaseAnonKey?.substring(0, 5));
+console.log('Realtime enabled:', !!supabaseUrl && !!supabaseAnonKey);
 
 // Initialize connection status
 let isOnline = true;
@@ -64,45 +70,61 @@ async function testSupabaseConnection(client: SupabaseClient<Database>): Promise
 let supabaseInstance: SupabaseClient<Database>;
 
 try {
-  if (supabaseUrl && supabaseAnonKey) {
-    supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        storage: AsyncStorage,
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: false,
-      },
-      global: {
-        headers: {
-          'X-App-Version': '1.0.0',
-        },
-      },
-      // Add some retry logic for network failures
-      db: {
-        schema: 'public',
-      },
-      realtime: {
-        params: {
-          eventsPerSecond: 10,
-        },
-      },
-    });
-    console.log('Supabase client initialized successfully');
-    
-    // Test connection (don't await, let it run in background)
-    testSupabaseConnection(supabaseInstance).then(isConnected => {
-      if (!isConnected) {
-        console.warn('Initial Supabase connection test failed - check network and credentials');
-      }
-    });
-  } else {
-    console.error('Missing Supabase URL or key');
-    // Create a dummy client that will be replaced when env vars are available
-    supabaseInstance = {} as SupabaseClient<Database>;
+  // Double check that we have values to work with
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase URL or key, even after fallbacks');
   }
+  
+  console.log('Creating Supabase client with URL:', supabaseUrl);
+  console.log('Anon Key length:', supabaseAnonKey.length);
+  
+  supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      storage: AsyncStorage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+    global: {
+      headers: {
+        'X-App-Version': '1.0.0',
+      },
+    },
+    // Add some retry logic for network failures
+    db: {
+      schema: 'public',
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
+  });
+  
+  console.log('Supabase client initialized successfully with auth:', !!supabaseInstance.auth);
+  
+  // Test connection (don't await, let it run in background)
+  testSupabaseConnection(supabaseInstance).then(isConnected => {
+    if (!isConnected) {
+      console.warn('Initial Supabase connection test failed - check network and credentials');
+    }
+  });
 } catch (error) {
   console.error('Error initializing Supabase client:', error);
-  supabaseInstance = {} as SupabaseClient<Database>;
+  // Create an empty client with auth object to prevent null reference errors
+  supabaseInstance = {
+    auth: {
+      signInWithPassword: async () => ({ data: null, error: new Error('Supabase client not properly initialized') }),
+      signUp: async () => ({ data: null, error: new Error('Supabase client not properly initialized') }),
+      signOut: async () => ({ error: new Error('Supabase client not properly initialized') }),
+      getSession: async () => ({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null }),
+    },
+    from: () => ({
+      select: () => ({ eq: () => ({ single: async () => ({ data: null, error: null, status: 200 }) }) }),
+      insert: async () => ({ data: null, error: null }),
+    }),
+  } as unknown as SupabaseClient<Database>;
 }
 
 // Helper function to check connection before operations

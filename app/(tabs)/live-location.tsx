@@ -109,15 +109,12 @@ export default function LiveLocationScreen() {
         const { error: pointError } = await supabase
           .from('location_points')
           .insert({
-            user_id: user.id,
-            session_id: data[0].id,
             location: `POINT(${currentLocation.coords.longitude} ${currentLocation.coords.latitude})`,
             accuracy: currentLocation.coords.accuracy,
             altitude: currentLocation.coords.altitude,
             speed: currentLocation.coords.speed,
             heading: currentLocation.coords.heading,
             battery_level: 100, // Mock battery level
-            is_emergency: false
           });
 
         if (pointError) {

@@ -74,7 +74,7 @@ export default function RegisterScreen() {
               Create Account
             </Text>
             <Text style={{ color: '#6B7280', textAlign: 'center' }}>
-              Join Trinatra for emergency safety
+              Join Trinetra for emergency safety
             </Text>
           </View>
 

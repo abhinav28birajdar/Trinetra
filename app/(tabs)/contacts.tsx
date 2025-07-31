@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
+import * as SMS from 'expo-sms';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
@@ -12,7 +14,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/auth';
@@ -26,10 +28,11 @@ interface Contact {
   relationship: string;
   color: string;
   is_emergency: boolean;
+  email?: string; // Optional email field
 }
 
 export default function ContactsScreen() {
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -41,6 +44,11 @@ export default function ContactsScreen() {
     is_emergency: false
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [currentContact, setCurrentContact] = useState<Contact | null>(null);
+  const [messageText, setMessageText] = useState('');
+  const [includeLocation, setIncludeLocation] = useState(true);
+  const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
 
   // Fetch contacts from database
   const fetchContacts = async () => {
@@ -77,6 +85,15 @@ export default function ContactsScreen() {
 
   useEffect(() => {
     fetchContacts();
+    
+    // Request permission and get location
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({});
+        setUserLocation(location);
+      }
+    })();
   }, [user]);
 
   const filteredContacts = contacts.filter(contact => 
@@ -111,7 +128,8 @@ export default function ContactsScreen() {
                 });
               }
               
-              // Make the call
+              // Make the call directly within the app if possible
+              // Note: This still uses the phone app, but attempts to return to the app after
               await Linking.openURL(`tel:${phoneNumber}`);
             } catch (error) {
               console.error('Error making call:', error);
@@ -121,6 +139,91 @@ export default function ContactsScreen() {
         }
       ]
     );
+  };
+  
+  const handleMessage = async (contact: Contact) => {
+    setCurrentContact(contact);
+    setMessageText('');
+    setShowMessageModal(true);
+  };
+  
+  const sendMessage = async () => {
+    if (!currentContact) return;
+    
+    try {
+      let finalMessage = messageText || 'Emergency alert from Trinatra app';
+      
+      // Add location if requested
+      if (includeLocation && userLocation) {
+        const { latitude, longitude } = userLocation.coords;
+        const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+        finalMessage += `\n\nMy current location: ${googleMapsUrl}`;
+      }
+      
+      // Check if SMS is available
+      const isAvailable = await SMS.isAvailableAsync();
+      if (!isAvailable) {
+        Alert.alert('Error', 'SMS is not available on this device');
+        return;
+      }
+      
+      // Log the message in Supabase
+      if (user) {
+        try {
+          await supabase.from('message_logs').insert({
+            user_id: user.id,
+            contact_id: currentContact.id,
+            contact_name: currentContact.name,
+            phone_number: currentContact.phone,
+            message_content: finalMessage,
+            sent_at: new Date().toISOString(),
+            includes_location: includeLocation,
+          }).select();
+          
+          // Create a notification for the recipient if they have a user account
+          const { data: recipientData } = await supabase
+            .from('emergency_contacts')
+            .select('contact_user_id')
+            .eq('id', currentContact.id)
+            .single();
+            
+          if (recipientData?.contact_user_id) {
+            await supabase.from('notifications').insert({
+              user_id: recipientData.contact_user_id,
+              title: 'New message from ' + (profile?.full_name || user.email?.split('@')[0] || 'a contact'),
+              message: finalMessage.substring(0, 100) + (finalMessage.length > 100 ? '...' : ''),
+              type: includeLocation ? 'location' : 'message',
+              sender_name: profile?.full_name || user.email?.split('@')[0],
+              related_data: includeLocation && userLocation ? {
+                coordinates: {
+                  latitude: userLocation.coords.latitude,
+                  longitude: userLocation.coords.longitude
+                }
+              } : null
+            });
+          }
+        } catch (error) {
+          console.error('Error logging message:', error);
+          // Continue anyway, as the message send is more important than logging
+        }
+      }
+      
+      // Send the SMS
+      const { result } = await SMS.sendSMSAsync(
+        [currentContact.phone],
+        finalMessage
+      );
+      
+      if (result === 'sent' || result === 'unknown') {
+        Alert.alert('Success', 'Message sent successfully');
+        setShowMessageModal(false);
+      } else {
+        Alert.alert('Error', 'Message could not be sent');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      Alert.alert('Error', 'Could not send the message');
+    }
   };
 
   const deleteContact = async (contactId: string) => {
@@ -240,105 +343,155 @@ export default function ContactsScreen() {
       <View style={{
         backgroundColor: 'white',
         marginHorizontal: 20,
-        marginBottom: 12,
+        marginBottom: 15,
         borderRadius: 16,
-        padding: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
+        overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
       }}>
-        {/* Contact Avatar */}
-        <View style={{
-          width: 60,
-          height: 60,
-          borderRadius: 30,
-          backgroundColor: displayColor + '20',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginRight: 16
-        }}>
-          <Text style={{
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: displayColor
-          }}>
-            {displayName.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-
-        {/* Contact Info */}
-        <View style={{ flex: 1 }}>
+        {/* Header with gradient */}
+        <LinearGradient
+          colors={[displayColor, '#7C3AED']}
+          start={[0, 0]}
+          end={[1, 0]}
+          style={{
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={{
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#1F2937',
-            flex: 1
-          }}>
-            {displayName}
-          </Text>
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: 12
+            }}>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: 'bold',
+                color: 'white'
+              }}>
+                {displayName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            
+            <View>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: 'bold',
+                color: 'white'
+              }}>
+                {displayName}
+              </Text>
+              <Text style={{
+                fontSize: 14,
+                color: 'rgba(255, 255, 255, 0.9)'
+              }}>
+                {displayRelationship}
+              </Text>
+            </View>
+          </View>
+          
           {item.is_emergency && (
             <View style={{
-              backgroundColor: '#FEF2F2',
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              borderRadius: 8,
-              marginLeft: 8
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 12
             }}>
-              <Text style={{ fontSize: 10, color: '#EF4444', fontWeight: '600' }}>
+              <Text style={{ fontSize: 12, color: 'white', fontWeight: '600' }}>
                 EMERGENCY
               </Text>
             </View>
           )}
-        </View>
-        <Text style={{
-          fontSize: 14,
-          color: '#6B7280',
-          marginTop: 2
-        }}>
-          {displayRelationship}
-        </Text>
-        <Text style={{
-          fontSize: 16,
-          color: '#374151',
-          marginTop: 4
-        }}>
-          {displayPhone}
-        </Text>
-      </View>
-
-      {/* Action Buttons */}
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <TouchableOpacity
-          onPress={() => handleCall(displayPhone, displayName)}
-          style={{
-            backgroundColor: '#10B981',
-            padding: 12,
-            borderRadius: 12,
-            marginRight: 8
-          }}
-        >
-          <Ionicons name="call" size={20} color="white" />
-        </TouchableOpacity>
+        </LinearGradient>
         
-        {!item.is_emergency && (
-          <TouchableOpacity
-            onPress={() => deleteContact(item.id)}
-            style={{
-              backgroundColor: '#EF4444',
-              padding: 12,
-              borderRadius: 12
-            }}
-          >
-            <Ionicons name="trash" size={20} color="white" />
-          </TouchableOpacity>
-        )}
+        {/* Contact Body */}
+        <View style={{ padding: 16 }}>
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{
+              fontSize: 14,
+              color: '#6B7280',
+              marginBottom: 4
+            }}>
+              Phone Number
+            </Text>
+            <Text style={{
+              fontSize: 18,
+              color: '#1F2937',
+              fontWeight: '500'
+            }}>
+              {displayPhone}
+            </Text>
+          </View>
+
+          {/* Action Buttons */}
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-between',
+            marginTop: 8
+          }}>
+            <TouchableOpacity
+              onPress={() => handleCall(displayPhone, displayName)}
+              style={{
+                backgroundColor: '#F0FDF4',
+                padding: 12,
+                borderRadius: 12,
+                flex: 1,
+                marginRight: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Ionicons name="call" size={20} color="#10B981" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#10B981', fontWeight: '600' }}>Call</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              onPress={() => handleMessage(item)}
+              style={{
+                backgroundColor: '#EBF5FF',
+                padding: 12,
+                borderRadius: 12,
+                flex: 1,
+                marginRight: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Ionicons name="chatbubble" size={20} color="#3B82F6" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#3B82F6', fontWeight: '600' }}>Message</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              onPress={() => deleteContact(item.id)}
+              style={{
+                backgroundColor: '#FEF2F2',
+                padding: 12,
+                borderRadius: 12,
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Ionicons name="trash" size={20} color="#EF4444" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#EF4444', fontWeight: '600' }}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
-    </View>
     );
   }, []);
 
@@ -548,6 +701,108 @@ export default function ContactsScreen() {
               >
                 <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
                   Add Contact
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Message Modal */}
+      <Modal
+        visible={showMessageModal}
+        animationType="slide"
+        transparent={true}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          justifyContent: 'flex-end'
+        }}>
+          <View style={{
+            backgroundColor: 'white',
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            padding: 24,
+            maxHeight: height * 0.7
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 20
+            }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1F2937' }}>
+                Send Message to {currentContact?.name}
+              </Text>
+              <TouchableOpacity onPress={() => setShowMessageModal(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView>
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                  Message
+                </Text>
+                <TextInput
+                  value={messageText}
+                  onChangeText={setMessageText}
+                  placeholder="Enter your message (or leave blank for default emergency alert)"
+                  multiline
+                  numberOfLines={4}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 12,
+                    padding: 12,
+                    fontSize: 16,
+                    textAlignVertical: 'top',
+                    height: 120
+                  }}
+                />
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setIncludeLocation(!includeLocation)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginBottom: 24
+                }}
+              >
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 4,
+                  borderWidth: 2,
+                  borderColor: includeLocation ? '#3B82F6' : '#D1D5DB',
+                  backgroundColor: includeLocation ? '#3B82F6' : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 12
+                }}>
+                  {includeLocation && (
+                    <Ionicons name="checkmark" size={16} color="white" />
+                  )}
+                </View>
+                <Text style={{ fontSize: 16, color: '#374151' }}>
+                  Include my current location
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={sendMessage}
+                style={{
+                  backgroundColor: '#3B82F6',
+                  padding: 16,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  marginBottom: 8
+                }}
+              >
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                  Send Message
                 </Text>
               </TouchableOpacity>
             </ScrollView>

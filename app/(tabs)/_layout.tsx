@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { Alert, Dimensions, Linking, Platform, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
+import { playEmergencyAlert, stopSound } from '../../lib/sound-utils';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/auth';
 
@@ -9,37 +10,84 @@ const { width } = Dimensions.get('window');
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const { user } = useAuthStore();
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Track click times for double click detection
+  const [lastClickTime, setLastClickTime] = useState(0);
+  const DOUBLE_CLICK_DELAY = 300; // ms between clicks to count as double click
+
+  // Play or stop emergency sound
+  const playEmergencySound = async () => {
+    try {
+      if (isPlaying) {
+        // If already playing, stop it
+        await stopSound();
+        setIsPlaying(false);
+        return;
+      }
+
+      // Play the sound and update state based on success
+      console.log('Calling playEmergencyAlert');
+      const success = await playEmergencyAlert();
+      console.log('Sound play result:', success);
+      setIsPlaying(success);
+    } catch (error) {
+      console.error('Error with emergency sound', error);
+      setIsPlaying(false);
+    }
+  };
 
   const handleSosPress = async () => {
-    Alert.alert(
-      "Emergency SOS",
-      "This will call emergency services and notify your emergency contacts.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Call Emergency", 
-          style: "destructive",
-          onPress: async () => {
-            // Log the emergency call
-            if (user) {
-              await supabase.from('call_logs').insert({
-                user_id: user.id,
-                phone_number: '100',
-                contact_name: 'Emergency - Police',
-                call_type: 'outgoing',
-                started_at: new Date().toISOString(),
-                duration: 0,
-              });
+    // Handle double click detection
+    const currentTime = new Date().getTime();
+    const timeDiff = currentTime - lastClickTime;
+    setLastClickTime(currentTime);
+    
+    console.log('SOS button pressed, time diff:', timeDiff);
+    
+    if (timeDiff < DOUBLE_CLICK_DELAY) {
+      // Double click detected - stop sound
+      console.log('Double tap detected, stopping sound');
+      await stopSound();
+      setIsPlaying(false);
+      return;
+    }
+    
+    // Single click - toggle sound (play if not playing, stop if playing)
+    await playEmergencySound();
+    
+    // Only show emergency dialog if not already playing (first tap)
+    if (!isPlaying) {
+      Alert.alert(
+        "Emergency SOS",
+        "This will call emergency services and notify your emergency contacts.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Call Emergency", 
+            style: "destructive",
+            onPress: async () => {
+              // Log the emergency call
+              if (user) {
+                await supabase.from('call_logs').insert({
+                  user_id: user.id,
+                  phone_number: '100',
+                  contact_name: 'Emergency - Police',
+                  call_type: 'outgoing',
+                  started_at: new Date().toISOString(),
+                  duration: 0,
+                });
+              }
+              
+              // Call emergency services
+              Linking.openURL('tel:100').catch(err => 
+                console.error('Error calling emergency:', err)
+              );
             }
-            
-            // Call emergency services
-            Linking.openURL('tel:100').catch(err => 
-              console.error('Error calling emergency:', err)
-            );
           }
-        }
-      ]
-    );
+        ]
+      );
+    }
   };
 
   // Define the tab order: Home → Contacts → SOS → Location → Community
@@ -79,9 +127,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                 }}
               >
                 <View style={{
-                  backgroundColor: '#EF4444',
-                  width: 50,
-                  height: 50,
+                  backgroundColor: isPlaying ? '#FF0000' : '#EF4444',
+                  width: 60,
+                  height: 60,
                   borderRadius: 25,
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -90,17 +138,25 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                   shadowOpacity: 0.3,
                   shadowRadius: 4,
                   elevation: 6,
+                  borderWidth: isPlaying ? 2 : 0,
+                  borderColor: '#FFFFFF',
                 }}>
-                  <Ionicons name="alert" size={24} color="white" />
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 14, 
+                    fontWeight: 'bold' 
+                  }}>
+                    {isPlaying ? 'Double\nTap' : 'Tap'}
+                  </Text>
                 </View>
                 <Text style={{
                   fontSize: 10,
                   marginTop: 4,
                   textAlign: 'center',
-                  color: '#FFFFFF',
+                  color: isPlaying ? '#FF0000' : '#FFFFFF',
                   fontWeight: '600',
                 }}>
-                  SOS
+                  {isPlaying ? 'SOS ACTIVE' : 'SOS'}
                 </Text>
               </TouchableOpacity>
             );

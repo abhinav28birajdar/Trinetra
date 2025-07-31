@@ -257,7 +257,7 @@ export default function RegisterScreen() {
                 color: '#6b7280',
                 textAlign: 'center',
               }}>
-                Join Trinatra for enhanced safety
+                Join Trinetra for enhanced safety
               </Text>
             </View>
 

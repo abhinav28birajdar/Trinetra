@@ -206,8 +206,8 @@ export default function HomeScreen() {
             location: `POINT(${currentLocation.coords.longitude} ${currentLocation.coords.latitude})`,
             shared_with: [], // Will be populated based on emergency contacts
             duration_minutes: 60, // 1 hour default
-            is_active: true,
-            is_emergency: false,
+            is_active: true
+            // is_emergency field removed as it doesn't exist in the schema
           }])
           .select()
           .single();
@@ -346,6 +346,9 @@ export default function HomeScreen() {
             )}
           </View>
         </LinearGradient>
+
+        {/* Location Sharing Card */}
+      
 
         {/* Quick Actions */}
         <View style={{ padding: 20 }}>
@@ -513,7 +516,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Location Sharing Card */}
-        <View style={{ padding: theme.spacing.md }}>
+          <View style={{ padding: theme.spacing.md }}>
           <View
             style={{
               backgroundColor: theme.colors.card,
@@ -524,10 +527,11 @@ export default function HomeScreen() {
               shadowOpacity: theme.colors.shadowOpacity,
               shadowRadius: 4,
               elevation: 3,
+              overflow: 'hidden', // This ensures nothing goes outside the card
             }}
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View>
+              <View style={{ flex: 1, marginRight: 10 }}>
                 <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.colors.text }}>
                   Location Sharing
                 </Text>
@@ -535,26 +539,15 @@ export default function HomeScreen() {
                   {isLocationSharing ? 'Currently sharing location' : 'Share your location with emergency contacts'}
                 </Text>
               </View>
-              <Switch
-                value={isLocationSharing}
-                onValueChange={toggleLocationSharing}
-                trackColor={{ false: theme.colors.disabled, true: theme.colors.primary }}
-                thumbColor={isLocationSharing ? 'white' : theme.colors.placeholder}
-              />
-            </View>
-            
-            {isLocationSharing && activeLocationShare && (
-              <View style={{ marginTop: theme.spacing.md, paddingTop: theme.spacing.md, borderTopWidth: 1, borderTopColor: theme.colors.divider }}>
-                <Text style={{ fontSize: 12, color: theme.colors.textMuted }}>
-                  Active since: {new Date(activeLocationShare.created_at).toLocaleTimeString()}
-                </Text>
-                {activeLocationShare.duration_minutes && (
-                  <Text style={{ fontSize: 12, color: theme.colors.textMuted, marginTop: 2 }}>
-                    Duration: {activeLocationShare.duration_minutes} minutes
-                  </Text>
-                )}
+              <View style={{ width: 60, alignItems: 'center' }}>
+                <Switch
+                  value={isLocationSharing}
+                  onValueChange={toggleLocationSharing}
+                  trackColor={{ false: theme.colors.disabled, true: theme.colors.primary }}
+                  thumbColor={isLocationSharing ? 'white' : theme.colors.placeholder}
+                />
               </View>
-            )}
+            </View>
           </View>
         </View>
 

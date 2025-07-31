@@ -2,15 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useAuth } from '../store/auth';
 
@@ -55,7 +55,7 @@ export default function Login() {
             {/* Header Image */}
             <View style={{ alignItems: 'center', paddingTop: 0, marginBottom: 40 }}>
               <Image 
-                source={require('../assets/images/header.png')}
+                  source={require('../assets/images/header.png')}
                 style={{ 
                   width: 500, 
                   height: 265,
@@ -80,7 +80,7 @@ export default function Login() {
                 color: 'rgba(255,255,255,0.8)', 
                 textAlign: 'center' 
               }}>
-                Sign in to continue to Trinatra
+                Sign in to continue to Trinetra
               </Text>
             </View>
 

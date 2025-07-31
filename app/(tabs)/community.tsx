@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { Alert, Dimensions, FlatList, Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, FlatList, Modal, RefreshControl, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/auth';
 
 const { width, height } = Dimensions.get('window');
@@ -16,6 +17,7 @@ interface Message {
   is_emergency?: boolean;
   avatar_color?: string;
   phone?: string;
+  message_type?: string;
 }
 
 interface CommunityMember {
@@ -36,66 +38,321 @@ export default function CommunityScreen() {
     phone: '',
     avatar_color: '#8B5CF6'
   });
-  const [communityMembers, setCommunityMembers] = useState<CommunityMember[]>([
-    {
-      id: 'demo1',
-      username: 'Sarah M.',
-      avatar_color: '#EF4444',
-      phone: '+1234567890',
-      is_online: true,
-      last_seen: new Date().toISOString()
-    },
-    {
-      id: 'demo3',
-      username: 'Mike R.',
-      avatar_color: '#3B82F6',
-      phone: '+1234567892',
-      is_online: false,
-      last_seen: new Date(Date.now() - 30 * 60 * 1000).toISOString()
-    }
-  ]);
-  
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      user_id: 'demo1',
-      username: 'Sarah M.',
-      message: 'Is everyone safe after the weather alert? Checking in from downtown area.',
-      timestamp: '2025-01-24T15:30:00Z',
-      is_emergency: false,
-      avatar_color: '#EF4444',
-      phone: '+1234567890'
-    },
-    {
-      id: '2',
-      user_id: 'system',
-      username: 'Emergency Alert',
-      message: 'WEATHER ALERT: Severe thunderstorm warning in effect until 6 PM. Please stay indoors.',
-      timestamp: '2025-01-24T15:15:00Z',
-      is_emergency: true,
-      avatar_color: '#DC2626'
-    },
-    {
-      id: '3',
-      user_id: 'demo3',
-      username: 'Mike R.',
-      message: 'Road closure on Main St due to fallen tree. Use alternate routes.',
-      timestamp: '2025-01-24T14:45:00Z',
-      is_emergency: false,
-      avatar_color: '#3B82F6',
-      phone: '+1234567892'
-    },
-    {
-      id: '4',
-      user_id: 'demo4',
-      username: 'Anna K.',
-      message: 'Lost dog in Oak Park area. Small brown terrier named Max. Please contact if found.',
-      timestamp: '2025-01-24T14:20:00Z',
-      is_emergency: false,
-      avatar_color: '#10B981'
-    }
-  ]);
+  const [communityMembers, setCommunityMembers] = useState<CommunityMember[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [onlineCount, setOnlineCount] = useState(0);
+  const [alertCount, setAlertCount] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const supabaseSubscription = useRef<any>(null);
+  
+  // Fetch community messages on mount
+  useEffect(() => {
+    console.log('Community component mounted, initializing data...');
+    
+    const initializeData = async () => {
+      try {
+        console.log('Starting to initialize community data...');
+        
+        // Test Supabase connection first
+        try {
+          const { data: testData, error: testError } = await supabase
+            .from('profiles')
+            .select('id')
+            .limit(1);
+            
+          if (testError) {
+            console.error('Supabase connection test failed:', testError);
+            Alert.alert('Connection Issue', 'Unable to connect to the server. Please check your internet connection and try again.');
+          } else {
+            console.log('Supabase connection is working properly');
+          }
+        } catch (connErr) {
+          console.error('Error testing Supabase connection:', connErr);
+        }
+        
+        await fetchCommunityMessages();
+        await fetchCommunityMembers();
+        await subscribeToNewMessages();
+        console.log('Community data initialization complete');
+      } catch (error) {
+        console.error('Error during community initialization:', error);
+      }
+    };
+    
+    initializeData();
+    
+    // Set up a periodic refresh timer as a backup in case realtime fails
+    const refreshInterval = setInterval(() => {
+      console.log('Running periodic message refresh...');
+      fetchCommunityMessages();
+    }, 30000); // Refresh every 30 seconds
+    
+    // Cleanup subscription when component unmounts
+    return () => {
+      console.log('Community component unmounting, cleaning up...');
+      clearInterval(refreshInterval);
+      if (supabaseSubscription.current) {
+        supabase.removeChannel(supabaseSubscription.current);
+        console.log('Supabase channel removed');
+      }
+    };
+  }, []);
+  
+  // Fetch community messages from database
+  const fetchCommunityMessages = async () => {
+    try {
+      setIsLoading(true);
+      console.log('Starting to fetch community messages...');
+      
+      // Fetch messages from the database
+      const { data, error } = await supabase
+        .from('community_messages')
+        .select(`
+          id,
+          user_id,
+          message,
+          message_type,
+          is_emergency,
+          created_at
+        `)
+        .order('created_at', { ascending: false })
+        .limit(50);
+        
+      if (error) {
+        console.error('Error fetching community messages:', error);
+        Alert.alert('Error', 'Failed to load community messages');
+      } else if (data) {
+        console.log(`Retrieved ${data.length} messages from database`);
+        
+        // We need to fetch profile information separately
+        const userIds = [...new Set(data.map(msg => msg.user_id))];
+        console.log(`Found ${userIds.length} unique users in messages`);
+        
+        // Create a map of user profiles
+        const userProfiles: Record<string, any> = {};
+        
+        if (userIds.length > 0) {
+          console.log('Fetching user profiles...');
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, username, phone, avatar_url')
+            .in('id', userIds);
+            
+          if (profilesError) {
+            console.error('Error fetching user profiles:', profilesError);
+          } else if (profilesData) {
+            console.log(`Retrieved ${profilesData.length} user profiles`);
+            
+            // Create a lookup map
+            profilesData.forEach(profile => {
+              userProfiles[profile.id] = profile;
+            });
+          }
+        }
+        
+        // Format messages with profile info from the map
+        console.log('Formatting messages with profile information...');
+        const formattedMessages = data.map(msg => {
+          const profile = userProfiles[msg.user_id] || null;
+          return {
+            id: msg.id,
+            user_id: msg.user_id,
+            username: profile?.full_name || profile?.username || 'Anonymous',
+            message: msg.message,
+            timestamp: msg.created_at,
+            is_emergency: msg.is_emergency || msg.message_type === 'emergency' || msg.message_type === 'alert',
+            avatar_color: getAvatarColor(msg.user_id),
+            phone: profile?.phone,
+            message_type: msg.message_type
+          };
+        });
+        
+        console.log(`Setting ${formattedMessages.length} formatted messages to state`);
+        setMessages(formattedMessages);
+        
+        // Count alerts
+        const alerts = data.filter(msg => msg.is_emergency || msg.message_type === 'emergency' || msg.message_type === 'alert');
+        setAlertCount(alerts.length);
+        console.log(`Found ${alerts.length} emergency/alert messages`);
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching messages:', err);
+    } finally {
+      setIsLoading(false);
+      console.log('Finished loading community messages');
+    }
+  };
+  
+  // Fetch community members from database
+  const fetchCommunityMembers = async () => {
+    try {
+      console.log('Starting to fetch community members...');
+      
+      // Get recently active users (online in last 30 minutes)
+      const thirtyMinutesAgo = new Date();
+      thirtyMinutesAgo.setMinutes(thirtyMinutesAgo.getMinutes() - 30);
+      
+      console.log('Fetching users active since:', thirtyMinutesAgo.toISOString());
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, phone, last_seen')
+        .gt('last_seen', thirtyMinutesAgo.toISOString())
+        .order('last_seen', { ascending: false });
+        
+      if (error) {
+        console.error('Error fetching community members:', error);
+      } else if (data) {
+        console.log(`Retrieved ${data.length} active community members`);
+        
+        const members = data.map(user => ({
+          id: user.id,
+          username: user.full_name || user.username || 'User',
+          avatar_color: getAvatarColor(user.id),
+          phone: user.phone || '',
+          is_online: true,
+          last_seen: user.last_seen
+        }));
+        
+        console.log('Setting community members to state...');
+        setCommunityMembers(members);
+        setOnlineCount(members.length);
+        console.log(`Online count: ${members.length}`);
+      }
+    } catch (err) {
+      console.error('Error fetching community members:', err);
+    }
+  };
+  
+  // Subscribe to new messages in real-time
+  const subscribeToNewMessages = async () => {
+    try {
+      console.log('Setting up realtime subscription for community messages...');
+      
+      // Test if realtime is available
+      const channels = supabase.getChannels();
+      console.log('Current Supabase channels:', channels.length);
+      
+      const channel = supabase
+        .channel('community-messages')
+        .on('postgres_changes', 
+          { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'community_messages' 
+          }, 
+          async (payload) => {
+            console.log('Received new message via subscription:', payload);
+            
+            // When a new message is created, fetch user details
+            const { data: userData, error: userError } = await supabase
+              .from('profiles')
+              .select('full_name, username, phone')
+              .eq('id', payload.new.user_id)
+              .single();
+              
+            if (userError) {
+              console.error('Error fetching user data for message:', userError);
+            }
+            
+            console.log('User data for message:', userData);
+              
+            const newMsg: Message = {
+              id: payload.new.id,
+              user_id: payload.new.user_id,
+              username: userData?.full_name || userData?.username || 'Anonymous',
+              message: payload.new.message,
+              timestamp: payload.new.created_at,
+              is_emergency: payload.new.is_emergency || payload.new.message_type === 'emergency' || payload.new.message_type === 'alert',
+              avatar_color: getAvatarColor(payload.new.user_id),
+              phone: userData?.phone,
+              message_type: payload.new.message_type
+            };
+            
+            console.log('Adding message to state:', newMsg);
+            
+            // Add the new message to the state
+            setMessages(prev => {
+              // Check if message already exists in state (to avoid duplicates)
+              const messageExists = prev.some(msg => msg.id === newMsg.id);
+              if (messageExists) {
+                console.log('Message already exists in state, not adding duplicate');
+                return prev;
+              }
+              console.log('Adding new message to state array');
+              return [newMsg, ...prev];
+            });
+            
+            // Update alert count if needed
+            if (newMsg.is_emergency) {
+              setAlertCount(prev => prev + 1);
+            }
+            
+            // Display a notification for important messages if they're not from current user
+            if ((newMsg.is_emergency || newMsg.message_type === 'emergency' || newMsg.message_type === 'alert') 
+                && newMsg.user_id !== user?.id) {
+              Alert.alert(
+                'New Emergency Alert',
+                `${newMsg.username}: ${newMsg.message}`,
+                [{ text: 'OK' }]
+              );
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('Subscription status:', status);
+        });
+        
+      supabaseSubscription.current = channel;
+      
+      // Verify channel was registered
+      const channelsAfter = supabase.getChannels();
+      console.log('Supabase channels after subscription:', channelsAfter.length);
+      console.log('Channel state:', channel.state);
+    } catch (err) {
+      console.error('Error subscribing to new messages:', err);
+    }
+  };
+  
+  // Generate consistent avatar colors based on user ID
+  const getAvatarColor = (userId: string) => {
+    const colors = ['#8B5CF6', '#EF4444', '#10B981', '#3B82F6', '#F59E0B', '#EC4899'];
+    const hash = userId.split('').reduce((acc, char) => {
+      return acc + char.charCodeAt(0);
+    }, 0);
+    return colors[hash % colors.length];
+  };
+
+  // Handle pull-to-refresh action
+  const onRefresh = async () => {
+    setRefreshing(true);
+    console.log('Manual refresh triggered by user');
+    try {
+      await fetchCommunityMessages();
+      await fetchCommunityMembers();
+      
+      // If we have a subscription, check its status
+      if (supabaseSubscription.current) {
+        const currentState = supabaseSubscription.current.state;
+        console.log('Current subscription state:', currentState);
+        
+        // If subscription is in a bad state, reconnect
+        if (currentState !== 'SUBSCRIBED') {
+          console.log('Subscription not in SUBSCRIBED state, reconnecting...');
+          await subscribeToNewMessages();
+        }
+      } else {
+        console.log('No subscription found, creating new one');
+        await subscribeToNewMessages();
+      }
+    } catch (error) {
+      console.error('Error during refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -108,21 +365,108 @@ export default function CommunityScreen() {
     return date.toLocaleDateString();
   };
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
-
-    const message: Message = {
-      id: Date.now().toString(),
-      user_id: user?.id || 'current_user',
-      username: profile?.full_name || user?.email?.split('@')[0] || 'You',
-      message: newMessage.trim(),
-      timestamp: new Date().toISOString(),
-      is_emergency: false,
-      avatar_color: '#8B5CF6'
-    };
-
-    setMessages([message, ...messages]);
-    setNewMessage('');
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !user) return;
+    
+    try {
+      console.log('Sending message:', newMessage.trim());
+      
+      // Update user's last_seen timestamp
+      await supabase
+        .from('profiles')
+        .update({ last_seen: new Date().toISOString() })
+        .eq('id', user.id);
+      
+      console.log('Sending message to community_messages table...');
+      
+      // Save message to database
+      const { data, error } = await supabase
+        .from('community_messages')
+        .insert({
+          user_id: user.id,
+          message: newMessage.trim(),
+          message_type: 'general',
+          is_emergency: false
+        })
+        .select();
+        
+      if (error) {
+        console.error('Error sending message:', error);
+        Alert.alert('Error', 'Failed to send message');
+        return;
+      }
+      
+      console.log('Message sent successfully:', data);
+      
+      // Create notifications for community members (optional feature)
+      if (data && data.length > 0) {
+        try {
+          // Get all community members except the sender
+          const { data: communityUsers } = await supabase
+            .from('profiles')
+            .select('id')
+            .neq('id', user.id)
+            .eq('receive_community_notifications', true);
+            
+          if (communityUsers && communityUsers.length > 0) {
+            // Create notifications for each user
+            const notifications = communityUsers.map(member => ({
+              user_id: member.id,
+              title: 'New Community Message',
+              message: `${profile?.full_name || user.email?.split('@')[0] || 'Someone'}: ${newMessage.trim().substring(0, 100)}${newMessage.trim().length > 100 ? '...' : ''}`,
+              type: 'message',
+              sender_name: profile?.full_name || user.email?.split('@')[0],
+              related_data: { message_id: data[0].id }
+            }));
+            
+            // Insert all notifications
+            await supabase.from('notifications').insert(notifications);
+          }
+        } catch (notifError) {
+          console.error('Error creating notifications:', notifError);
+          // Don't alert as this is not critical to the user experience
+        }
+      }
+      
+      // Add the message directly to the UI instead of waiting for subscription
+      if (data && data.length > 0) {
+        console.log('Creating message object with returned data');
+        const newMsg: Message = {
+          id: data[0].id,
+          user_id: user.id,
+          username: profile?.full_name || user?.email?.split('@')[0] || 'You',
+          message: data[0].message,
+          timestamp: data[0].created_at,
+          is_emergency: false,
+          avatar_color: getAvatarColor(user.id),
+          message_type: 'general'
+        };
+        
+        console.log('Adding message to UI state:', newMsg);
+        setMessages(prev => [newMsg, ...prev]);
+      } else {
+        console.log('No data returned from insert operation, using client-side data');
+        const newMsg: Message = {
+          id: Date.now().toString(),
+          user_id: user.id,
+          username: profile?.full_name || user?.email?.split('@')[0] || 'You',
+          message: newMessage.trim(),
+          timestamp: new Date().toISOString(),
+          is_emergency: false,
+          avatar_color: getAvatarColor(user.id),
+          message_type: 'general'
+        };
+        
+        console.log('Adding client-generated message to UI state:', newMsg);
+        setMessages(prev => [newMsg, ...prev]);
+      }
+      
+      // Clear the input
+      setNewMessage('');
+    } catch (err) {
+      console.error('Error in sendMessage:', err);
+      Alert.alert('Error', 'Failed to send message');
+    }
   };
 
   const addCommunityMember = () => {
@@ -146,7 +490,9 @@ export default function CommunityScreen() {
     Alert.alert('Success', `${member.username} has been added to the community!`);
   };
 
-  const sendCheckIn = () => {
+  const sendCheckIn = async () => {
+    if (!user) return;
+    
     Alert.alert(
       'Safety Check-in',
       'Send a safety check-in to the community?',
@@ -154,25 +500,38 @@ export default function CommunityScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Check-in',
-          onPress: () => {
-            const checkInMessage: Message = {
-              id: Date.now().toString(),
-              user_id: user?.id || 'current_user',
-              username: profile?.full_name || 'You',
-              message: 'I am safe and checking in with the community. All good here! 👍',
-              timestamp: new Date().toISOString(),
-              is_emergency: false,
-              avatar_color: '#3B82F6'
-            };
-            setMessages([checkInMessage, ...messages]);
-            Alert.alert('Check-in Sent', 'Your safety status has been shared with the community.');
+          onPress: async () => {
+            try {
+              // Save check-in message to database
+              const { error } = await supabase
+                .from('community_messages')
+                .insert({
+                  user_id: user.id,
+                  message: 'I am safe and checking in with the community. All good here! 👍',
+                  message_type: 'check-in',
+                  is_emergency: false
+                });
+                
+              if (error) {
+                console.error('Error sending check-in:', error);
+                Alert.alert('Error', 'Failed to send check-in');
+                return;
+              }
+              
+              Alert.alert('Check-in Sent', 'Your safety status has been shared with the community.');
+            } catch (err) {
+              console.error('Error in sendCheckIn:', err);
+              Alert.alert('Error', 'Failed to send check-in');
+            }
           }
         }
       ]
     );
   };
 
-  const sendEmergencyAlert = () => {
+  const sendEmergencyAlert = async () => {
+    if (!user) return;
+    
     Alert.alert(
       'Send Emergency Alert',
       'This will send an emergency alert to all community members. Are you sure?',
@@ -181,17 +540,29 @@ export default function CommunityScreen() {
         {
           text: 'Send Alert',
           style: 'destructive',
-          onPress: () => {
-            const emergencyMessage: Message = {
-              id: Date.now().toString(),
-              user_id: user?.id || 'current_user',
-              username: profile?.full_name || 'Emergency Alert',
-              message: 'EMERGENCY ALERT: Immediate assistance needed at my location. Please help!',
-              timestamp: new Date().toISOString(),
-              is_emergency: true,
-              avatar_color: '#DC2626'
-            };
-            setMessages([emergencyMessage, ...messages]);
+          onPress: async () => {
+            try {
+              // Save emergency message to database
+              const { error } = await supabase
+                .from('community_messages')
+                .insert({
+                  user_id: user.id,
+                  message: 'EMERGENCY ALERT: Immediate assistance needed at my location. Please help!',
+                  message_type: 'emergency',
+                  is_emergency: true
+                });
+                
+              if (error) {
+                console.error('Error sending emergency alert:', error);
+                Alert.alert('Error', 'Failed to send emergency alert');
+                return;
+              }
+              
+              Alert.alert('Alert Sent', 'Your emergency alert has been sent to the community');
+            } catch (err) {
+              console.error('Error in sendEmergencyAlert:', err);
+              Alert.alert('Error', 'Failed to send emergency alert');
+            }
           }
         }
       ]
@@ -381,11 +752,11 @@ export default function CommunityScreen() {
           {/* Quick Stats */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <View style={{ alignItems: 'center' }}>
-              <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>124</Text>
+              <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>{onlineCount}</Text>
               <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>Online</Text>
             </View>
             <View style={{ alignItems: 'center' }}>
-              <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>2</Text>
+              <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>{alertCount}</Text>
               <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>Alerts</Text>
             </View>
             <View style={{ alignItems: 'center' }}>
@@ -460,14 +831,39 @@ export default function CommunityScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Messages List */}
-          <FlatList
-            data={messages}
-            renderItem={renderMessage}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 120 }}
-          />
+          {/* Loading State */}
+          {isLoading ? (
+            <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 40 }}>
+              <ActivityIndicator size="large" color="#8B5CF6" />
+              <Text style={{ marginTop: 16, color: '#6B7280', fontSize: 16 }}>
+                Loading community messages...
+              </Text>
+            </View>
+          ) : messages.length === 0 ? (
+            <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 40 }}>
+              <Ionicons name="chatbubbles-outline" size={64} color="#9CA3AF" />
+              <Text style={{ marginTop: 16, color: '#6B7280', fontSize: 16, textAlign: 'center' }}>
+                No messages yet.{'\n'}Be the first to post in the community!
+              </Text>
+            </View>
+          ) : (
+            /* Messages List */
+            <FlatList
+              data={messages}
+              renderItem={renderMessage}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 120 }}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={['#8B5CF6']}
+                  tintColor="#8B5CF6"
+                />
+              }
+            />
+          )}
         </View>
 
         {/* Message Input */}

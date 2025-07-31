@@ -17,6 +17,7 @@ export interface Profile {
     emergency_message?: string | null;
     location_sharing_enabled?: boolean;
     push_notifications_enabled?: boolean;
+    receive_community_notifications?: boolean;
 }
 
 export interface Contact {

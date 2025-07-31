@@ -47,7 +47,7 @@ export default function WelcomeScreen() {
           textAlign: 'center',
           marginBottom: 16,
         }}>
-          Trinatra
+          Trinetra
         </Text>
 
         {/* Subtitle */}
