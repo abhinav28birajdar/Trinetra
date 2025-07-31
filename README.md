@@ -1,48 +1,61 @@
-# Trinatra Safety App
+# 👩‍🦰 Trinetra – Women Safety App
 
 <div align="center">
-  <img src="./assets/images/icon.png" alt="Trinatra Logo" width="150" />
+  <img src="./assets/images/icon.png" alt="Trinetra Logo" width="150" />
+  <h3>Empowering Women with Real-Time Safety Tools 🚨</h3>
+  <p>A React Native + Expo application for SOS alerts, live location sharing, and community-driven safety.</p>
 
-  <!-- Tech Stack Badges -->
   <img src="https://img.shields.io/badge/React_Native-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
   <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=black" />
   <img src="https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white" />
 </div>
 
-Trinatra is a comprehensive personal safety application built with React Native and Expo that empowers users to stay safe in emergency situations. With features like one-touch emergency calling, real-time location sharing, and trusted contact management, Trinatra provides peace of mind and critical safety tools when you need them most.
+---
 
-```
+---
 
+## 📖 Overview
 
-```
-## Features
+**Trinetra** is a **comprehensive personal safety application** built with React Native and Expo. It is specifically designed as a **women’s safety and emergency response app** that empowers users to **act quickly in unsafe situations**. It provides peace of mind and critical safety tools when you need them most, combining **SOS alerts, live location sharing, trusted contacts**, and a **community page** to enhance safety and awareness.
 
-- **Emergency SOS**: One-touch emergency assistance with automatic location sharing
-- **Live Location Tracking**: Share your real-time location with trusted emergency contacts
-- **Safety Network**: Build and manage your personal safety network of trusted contacts
-- **Call Logging & History**: Comprehensive record of all emergency interactions
-- **User Profiles**: Store critical medical and personal information for emergency responders
-- **Offline Capability**: Core features work even with limited connectivity
+---
 
-## Tech Stack
+## 🌟 Key Features
+
+- **🚨 Emergency SOS**: One-tap alert with automatic live location sharing and initiation of a call to emergency contacts.
+- **📡 Live Location Tracking**: Share your real-time location with trusted emergency contacts using background location capabilities.
+- **👭 Safety Network**: Build and manage your personal safety network of trusted contacts.
+- **📞 Emergency History**: Comprehensive record of all SOS calls and location alerts.
+- **👤 Safety Profiles**: Store critical medical and personal information for quick access by emergency responders.
+- **📶 Offline Capability**: Core features, including SOS and safety alerts, work even with limited or no internet connectivity.
+- **🌐 Community Page**: Connect with local users for:
+    - Sharing safety tips & verified alerts.
+    - Posting warnings about unsafe areas.
+    - Engaging in discussions with the safety community.
+
+---
+
+## 🧰 Tech Stack
 
 - **Frontend**: React Native, Expo, React Navigation v7
 - **UI/UX**: NativeWind (Tailwind CSS for React Native), Expo-Blur
-- **Backend**: Supabase (Authentication, Database, Storage)
+- **Backend**: Supabase (Authentication, Database, Storage, Realtime)
+- **Database**: PostgreSQL (via Supabase) with **Row Level Security (RLS)**
 - **State Management**: Zustand for global state management
-- **Location Services**: Expo Location with background tracking
-- **Networking**: NetInfo for connectivity monitoring, offline support
+- **Location Services**: Expo Location (with background tracking)
+- **Networking**: NetInfo for connectivity monitoring and offline support
 - **Security**: Environment variable protection, SQL injection prevention
-- **Database**: PostgreSQL (via Supabase) with Row Level Security
 
-## Prerequisites
+---
 
-- Node.js (v18 or later)
-- npm or yarn
-- Expo CLI (`npm install -g expo-cli`)
-- A Supabase account with project setup
-- Android Studio or Xcode for native development (optional)
+## 📦 Prerequisites
 
+Before you begin, ensure you have the following installed:
+
+- **Node.js** (v18 or later)
+- **npm** or **yarn**
+- **Expo CLI** (`npm install -g expo-cli`)
+- A **Supabase account** with a project set up
 
 ## Project Structure
 
